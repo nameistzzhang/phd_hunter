@@ -1,0 +1,113 @@
+# PhD Hunter Configuration
+# Copy this file to config/settings.yaml and customize
+
+# LLM Configuration
+llm:
+  provider: "openai"              # "openai" or "anthropic"
+  api_key: ""                    # Set via environment variable recommended
+  model: "gpt-4o"                # Model to use for analysis
+  temperature: 0.3               # Creativity (0-1)
+  max_tokens: 4096               # Max response tokens
+  rate_limit:
+    requests_per_minute: 60
+    tokens_per_minute: 300000
+
+# Crawler Configuration
+crawlers:
+  selenium:
+    headless: true               # Run browser without UI
+    timeout: 30                  # Request timeout in seconds
+    user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+  # Rate limiting between requests (seconds)
+  rate_limits:
+    csrankings: 1.0
+    scholar: 2.0
+    professor: 1.0
+    arxiv: 0.5
+
+  # Caching settings
+  cache:
+    enabled: true
+    ttl: 86400                  # Cache TTL in seconds (1 day)
+    dir: "./cache/crawlers"
+
+# Output Configuration
+output:
+  reports_dir: "./reports"
+  papers_dir: "./papers"
+  cache_dir: "./cache"
+  default_format: "html"         # html, pdf, json, markdown
+
+# Report Configuration
+reports:
+  template: "default"
+  include:
+    - executive_summary
+    - professor_profile
+    - research_analysis
+    - fit_assessment
+    - application_strategy
+    - risk_factors
+
+  # Scoring weights (must sum to 1.0)
+  scoring:
+    research_alignment: 0.40
+    recent_activity: 0.20
+    collaboration_network: 0.15
+    student_mentorship: 0.15
+    funding_potential: 0.10
+
+# Agent Configuration
+agents:
+  coordinator:
+    max_parallel: 5              # Max concurrent professor analyses
+    timeout: 300                 # Seconds per professor
+    retry_attempts: 3
+
+  researcher:
+    batch_size: 10               # Papers per LLM call
+    context_window: 128000       # Token limit
+
+  reporter:
+    template: "comprehensive"
+
+# Database Configuration (optional)
+database:
+  enabled: false
+  url: "sqlite:///phd_hunter.db"
+  echo: false                   # Log SQL queries
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins: ["http://localhost:8501"]
+  rate_limit:
+    requests_per_minute: 100
+
+# Frontend Configuration
+frontend:
+  streamlit:
+    port: 8501
+    headless: false
+    enable_caching: true
+
+# Logging Configuration
+logging:
+  level: "INFO"                 # DEBUG, INFO, WARNING, ERROR
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
+  file: "./logs/phd_hunter.log"
+  rotation: "1 day"
+  retention: "7 days"
+
+# Proxy Configuration (optional)
+# proxy:
+#   http: "http://proxy.example.com:8080"
+#   https: "http://proxy.example.com:8080"
+
+# Search Configuration
+search:
+  default_max_professors: 50
+  paper_limit_per_professor: 20
+  year_range: 5                 # Consider papers from last N years
