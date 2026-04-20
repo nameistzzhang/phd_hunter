@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Contributing" href="contributing.html" />
-    <link rel="prev" title="Frontend" href="frontend.html" /> 
+    <link rel="prev" title="Crawlers" href="crawlers.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,29 +47,30 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="llm.html">LLM Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reports.html">Reports</a></li>
-<li class="toctree-l1"><a class="reference internal" href="frontend.html">Frontend</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#base-url">Base URL</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#authentication">Authentication</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#endpoints">Endpoints</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#search">Search</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#professors">Professors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#reports">Reports</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#papers">Papers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#llm">LLM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#health">Health</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">命令行参考</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">命令</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#python-client">Python Client</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#error-handling">Error Handling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#rate-limiting">Rate Limiting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#webhooks">Webhooks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#sdks">SDKs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api">数据库 API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#database">Database 类</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">主要方法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">模型参考</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#professor">Professor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paper">Paper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#university">University</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">爬虫基类</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#csrankingscrawler">CSRankingsCrawler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#arxivcrawler">ArxivCrawler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">参见</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -102,319 +103,109 @@
              
   <section id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
-<p>FastAPI backend providing REST endpoints for the PhD Hunter system.</p>
-<section id="base-url">
-<h2>Base URL<a class="headerlink" href="#base-url" title="Link to this heading"></a></h2>
-<p>Development: <code class="docutils literal notranslate"><span class="pre">http://localhost:8000</span></code></p>
-<p>Production: Depends on deployment configuration</p>
+<p>当前版本使用命令行接口 (CLI) 作为主要 API。</p>
+<section id="id1">
+<h2>命令行参考<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>主程序入口: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span></code></p>
+<section id="id2">
+<h3>命令<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>phd-hunter crawl [OPTIONS]
+phd-hunter fetch-papers [OPTIONS]
+phd-hunter stats
+phd-hunter list [OPTIONS]
+</pre></div>
+</div>
+<p>详细信息请参考 <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a>。</p>
 </section>
-<section id="authentication">
-<h2>Authentication<a class="headerlink" href="#authentication" title="Link to this heading"></a></h2>
-<p>API key authentication (optional):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;X-API-Key&quot;</span><span class="p">:</span> <span class="s2">&quot;your-api-key&quot;</span><span class="p">}</span>
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/api/professors&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
-</pre></div>
-</div>
 </section>
-<section id="endpoints">
-<h2>Endpoints<a class="headerlink" href="#endpoints" title="Link to this heading"></a></h2>
-<section id="search">
-<h3>Search<a class="headerlink" href="#search" title="Link to this heading"></a></h3>
-<p><strong>POST</strong> <code class="docutils literal notranslate"><span class="pre">/api/search</span></code></p>
-<p>Initiate a new professor search.</p>
-<p>Request:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;universities&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Stanford&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Berkeley&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;research_area&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;machine learning&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;keywords&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;deep learning&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;neural networks&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;max_professors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;include_papers&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<span class="p">}</span>
+<section id="api">
+<h2>数据库 API<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
+<p>直接使用 <code class="docutils literal notranslate"><span class="pre">phd_hunter.database.Database</span></code> 类进行编程访问。</p>
+<p>快速示例：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">Database</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Professor</span><span class="p">,</span> <span class="n">University</span>
+
+<span class="n">db</span> <span class="o">=</span> <span class="n">Database</span><span class="p">(</span><span class="n">db_path</span><span class="o">=</span><span class="s2">&quot;phd_hunter.db&quot;</span><span class="p">)</span>
+
+<span class="c1"># 列出教授</span>
+<span class="n">professors</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">list_professors</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># 获取单个教授</span>
+<span class="n">prof</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_professor</span><span class="p">(</span><span class="n">prof_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># 获取教授的论文</span>
+<span class="n">papers</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_papers_by_professor</span><span class="p">(</span><span class="n">professor_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># 导出为 JSON</span>
+<span class="n">db</span><span class="o">.</span><span class="n">export_to_json</span><span class="p">(</span><span class="s2">&quot;output.json&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;search_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uuid-1234&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;estimated_time&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">120</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;results_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/api/search/uuid-1234/results&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/search/{search_id}/status</span></code></p>
-<p>Check search progress.</p>
-<p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;search_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uuid-1234&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;progress&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;current_step&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fetching_papers&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;eta_seconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/search/{search_id}/results</span></code></p>
-<p>Get search results.</p>
-<p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;search_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uuid-1234&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;completed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">25</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;professors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;prof_001&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;John Doe&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;university&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;match_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">87.5</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;jdoe@mit.edu&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;scholar_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://scholar.google.com/...&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;homepage&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://...&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;research_interests&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ML&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;NLP&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Computer Vision&quot;</span><span class="p">],</span>
-<span class="w">      </span><span class="nt">&quot;citation_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12500</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;h_index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">58</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;recent_papers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="professors">
-<h3>Professors<a class="headerlink" href="#professors" title="Link to this heading"></a></h3>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/professors</span></code></p>
-<p>List all cached professors.</p>
-<p>Query parameters:</p>
+<section id="database">
+<h3>Database 类<a class="headerlink" href="#database" title="Link to this heading"></a></h3>
+<section id="id3">
+<h4>主要方法<a class="headerlink" href="#id3" title="Link to this heading"></a></h4>
+<p><strong>连接与初始化</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">university</span></code>: Filter by university</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">area</span></code>: Filter by research area</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">min_score</span></code>: Minimum match score</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">limit</span></code>: Max results (default 100)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">offset</span></code>: Pagination offset</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__init__(db_path:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">&quot;phd_hunter.db&quot;)</span></code>
+初始化数据库连接并创建表。</p></li>
 </ul>
-<p>Response: Array of professor objects.</p>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/professors/{professor_id}</span></code></p>
-<p>Get detailed professor data.</p>
-<p>Response includes full research analysis.</p>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/professors/{professor_id}/papers</span></code></p>
-<p>Get professor’s papers.</p>
-<p><strong>DELETE</strong> <code class="docutils literal notranslate"><span class="pre">/api/professors/{professor_id}</span></code></p>
-<p>Remove professor from cache.</p>
-</section>
-<section id="reports">
-<h3>Reports<a class="headerlink" href="#reports" title="Link to this heading"></a></h3>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/reports/{professor_id}</span></code></p>
-<p>Get report for a professor.</p>
-<p>Query parameters:</p>
+<p><strong>教授操作</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">format</span></code>: <code class="docutils literal notranslate"><span class="pre">html</span></code>, <code class="docutils literal notranslate"><span class="pre">pdf</span></code>, <code class="docutils literal notranslate"><span class="pre">json</span></code>, <code class="docutils literal notranslate"><span class="pre">markdown</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">sections</span></code>: Comma-separated list of sections to include</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">list_professors(status,</span> <span class="pre">min_match_score,</span> <span class="pre">limit)</span> <span class="pre">-&gt;</span> <span class="pre">List[Dict]</span></code>
+列出教授，支持过滤。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_professor(prof_id)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
+根据 ID 获取教授。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_professor_by_name(name,</span> <span class="pre">university_name)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
+根据姓名（可选的大学）获取教授。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">upsert_professor(prof:</span> <span class="pre">Professor,</span> <span class="pre">university:</span> <span class="pre">University)</span> <span class="pre">-&gt;</span> <span class="pre">int</span></code>
+插入或更新教授记录，返回数据库 ID。</p></li>
 </ul>
-<p>Response: Report content (or redirect to file).</p>
-<p><strong>POST</strong> <code class="docutils literal notranslate"><span class="pre">/api/reports/batch</span></code></p>
-<p>Generate reports for multiple professors.</p>
-<p>Request:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;professor_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;prof_001&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;prof_002&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;combine&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response: ZIP file or download URLs.</p>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/reports/compare</span></code></p>
-<p>Generate comparison report.</p>
-<p>Request:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;professor_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;prof_001&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;prof_002&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;prof_003&quot;</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;metrics&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;match_score&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;h_index&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;citation_count&quot;</span><span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="papers">
-<h3>Papers<a class="headerlink" href="#papers" title="Link to this heading"></a></h3>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/papers</span></code></p>
-<p>List papers (with filtering).</p>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/papers/{paper_id}</span></code></p>
-<p>Get paper details including LLM analysis.</p>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/api/papers/{paper_id}/download</span></code></p>
-<p>Download paper PDF.</p>
-</section>
-<section id="llm">
-<h3>LLM<a class="headerlink" href="#llm" title="Link to this heading"></a></h3>
-<p><strong>POST</strong> <code class="docutils literal notranslate"><span class="pre">/api/llm/analyze</span></code></p>
-<p>Run custom LLM analysis.</p>
-<p>Request:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;system_prompt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;You are a research analyst...&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;user_content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Analyze this paper...&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// Optional structured output schema</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;tokens_used&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1500</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;cost&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.045</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>POST</strong> <code class="docutils literal notranslate"><span class="pre">/api/llm/embed</span></code></p>
-<p>Generate embeddings.</p>
-<p>Request:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;texts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;paper abstract 1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;paper abstract 2&quot;</span><span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;embeddings&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">]]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="health">
-<h3>Health<a class="headerlink" href="#health" title="Link to this heading"></a></h3>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/health</span></code></p>
-<p>Health check.</p>
-<p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;healthy&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-19T...&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>GET</strong> <code class="docutils literal notranslate"><span class="pre">/metrics</span></code></p>
-<p>Prometheus metrics.</p>
-</section>
-</section>
-<section id="configuration">
-<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
-<p>Configure API in <code class="docutils literal notranslate"><span class="pre">config/settings.yaml</span></code>:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">api</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
-<span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8000</span>
-<span class="w">  </span><span class="nt">reload</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">        </span><span class="c1"># Development only</span>
-<span class="w">  </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">          </span><span class="c1"># Production</span>
-
-<span class="w">  </span><span class="nt">cors</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">origins</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;http://localhost:8501&quot;</span><span class="p p-Indicator">]</span>
-
-<span class="w">  </span><span class="nt">rate_limit</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">requests_per_minute</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-
-<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<span class="w">    </span><span class="nt">api_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w">       </span><span class="c1"># List of allowed keys</span>
-</pre></div>
-</div>
-</section>
-<section id="python-client">
-<h2>Python Client<a class="headerlink" href="#python-client" title="Link to this heading"></a></h2>
-<p>Convenient Python client:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span>
-
-<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;http://localhost:8000&quot;</span><span class="p">)</span>
-
-<span class="c1"># Search</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
-    <span class="n">universities</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span> <span class="s2">&quot;Stanford&quot;</span><span class="p">],</span>
-    <span class="n">area</span><span class="o">=</span><span class="s2">&quot;NLP&quot;</span>
-<span class="p">)</span>
-
-<span class="c1"># Get report</span>
-<span class="n">report</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_report</span><span class="p">(</span>
-    <span class="n">professor_id</span><span class="o">=</span><span class="s2">&quot;prof_001&quot;</span><span class="p">,</span>
-    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span>
-<span class="p">)</span>
-
-<span class="c1"># Batch operations</span>
-<span class="n">batch</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">batch_reports</span><span class="p">(</span>
-    <span class="n">professor_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;prof_001&quot;</span><span class="p">,</span> <span class="s2">&quot;prof_002&quot;</span><span class="p">],</span>
-    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;html&quot;</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="error-handling">
-<h2>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading"></a></h2>
-<p>API errors return standard HTTP status codes:</p>
+<p><strong>论文操作</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">200</span></code>: Success</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">400</span></code>: Invalid request</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">401</span></code>: Authentication required</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">403</span></code>: Permission denied</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">404</span></code>: Not found</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">429</span></code>: Rate limited</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">500</span></code>: Server error</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_papers_by_professor(professor_id,</span> <span class="pre">limit)</span> <span class="pre">-&gt;</span> <span class="pre">List[Dict]</span></code>
+获取某教授的所有论文。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">upsert_paper(professor_id,</span> <span class="pre">paper_data)</span> <span class="pre">-&gt;</span> <span class="pre">int</span></code>
+插入或更新论文记录。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_professor_with_papers(professor_id)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
+获取教授及其所有论文（关联查询）。</p></li>
 </ul>
-<p>Error response format:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;InvalidRequest&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;University not found&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;details&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;university&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Unknown University&quot;</span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-<section id="rate-limiting">
-<h2>Rate Limiting<a class="headerlink" href="#rate-limiting" title="Link to this heading"></a></h2>
-<p>Default: 100 requests/minute per IP</p>
-<p>Headers returned:</p>
+<p><strong>统计与导出</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">X-RateLimit-Limit</span></code>: Max requests</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">X-RateLimit-Remaining</span></code>: Requests left</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">X-RateLimit-Reset</span></code>: Reset timestamp</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_stats()</span> <span class="pre">-&gt;</span> <span class="pre">Dict</span></code>
+获取数据库统计信息。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export_to_json(output_path)</span></code>
+导出所有数据为 JSON 文件。</p></li>
 </ul>
-<p>When rate limited (429):</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RateLimitExceeded&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;retry_after&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span>
-<span class="p">}</span>
-</pre></div>
-</div>
 </section>
-<section id="webhooks">
-<h2>Webhooks<a class="headerlink" href="#webhooks" title="Link to this heading"></a></h2>
-<p>Optional webhook notifications:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Register webhook</span>
-<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/api/webhooks&quot;</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="p">{</span>
-    <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="s2">&quot;https://myserver.com/callback&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;events&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;search.completed&quot;</span><span class="p">,</span> <span class="s2">&quot;report.ready&quot;</span><span class="p">]</span>
-<span class="p">})</span>
-
-<span class="c1"># Webhook payload</span>
-<span class="p">{</span>
-  <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;search.completed&quot;</span><span class="p">,</span>
-  <span class="s2">&quot;search_id&quot;</span><span class="p">:</span> <span class="s2">&quot;uuid-1234&quot;</span><span class="p">,</span>
-  <span class="s2">&quot;result_count&quot;</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span>
-  <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="s2">&quot;2026-04-19T...&quot;</span>
-<span class="p">}</span>
-</pre></div>
-</div>
 </section>
-<section id="sdks">
-<h2>SDKs<a class="headerlink" href="#sdks" title="Link to this heading"></a></h2>
-<p><strong>Python SDK</strong> (<code class="docutils literal notranslate"><span class="pre">phd_hunter.api</span></code>)</p>
-<p><strong>JavaScript SDK</strong> (coming soon)</p>
-<p><strong>CLI</strong> (<code class="docutils literal notranslate"><span class="pre">phd-hunter</span></code> command)</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>phd-hunter<span class="w"> </span>search<span class="w"> </span>--universities<span class="w"> </span>MIT<span class="w"> </span>--area<span class="w"> </span>ML
-phd-hunter<span class="w"> </span>report<span class="w"> </span>prof_001<span class="w"> </span>--format<span class="w"> </span>pdf
-phd-hunter<span class="w"> </span>list<span class="w"> </span>--university<span class="w"> </span>Stanford
-</pre></div>
-</div>
 </section>
-<section id="see-also">
-<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>模型参考<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="professor">
+<h3>Professor<a class="headerlink" href="#professor" title="Link to this heading"></a></h3>
+</section>
+<section id="paper">
+<h3>Paper<a class="headerlink" href="#paper" title="Link to this heading"></a></h3>
+</section>
+<section id="university">
+<h3>University<a class="headerlink" href="#university" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="id5">
+<h2>爬虫基类<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="csrankingscrawler">
+<h3>CSRankingsCrawler<a class="headerlink" href="#csrankingscrawler" title="Link to this heading"></a></h3>
+</section>
+<section id="arxivcrawler">
+<h3>ArxivCrawler<a class="headerlink" href="#arxivcrawler" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="id6">
+<h2>参见<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a></p></li>
-<li><p><a class="reference internal" href="frontend.html"><span class="doc">Frontend</span></a></p></li>
-<li><p><span class="xref std std-doc">deployment</span></p></li>
+<li><p><a class="reference internal" href="crawlers.html"><span class="doc">Crawlers</span></a></p></li>
+<li><p><a class="reference internal" href="contributing.html"><span class="doc">Contributing</span></a></p></li>
 </ul>
 </section>
 </section>
@@ -423,7 +214,7 @@ phd-hunter<span class="w"> </span>list<span class="w"> </span>--university<span 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="frontend.html" class="btn btn-neutral float-left" title="Frontend" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="crawlers.html" class="btn btn-neutral float-left" title="Crawlers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

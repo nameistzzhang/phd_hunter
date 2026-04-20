@@ -45,18 +45,14 @@
               <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#step-by-step-installation">Step-by-Step Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">前提条件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">分步安装</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">故障排除</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">下一步</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="llm.html">LLM Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reports.html">Reports</a></li>
-<li class="toctree-l1"><a class="reference internal" href="frontend.html">Frontend</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -88,128 +84,85 @@
              
   <section id="installation-guide">
 <h1>Installation Guide<a class="headerlink" href="#installation-guide" title="Link to this heading"></a></h1>
-<p>This guide will help you set up PhD Hunter on your machine.</p>
-<section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h2>
+<p>本指南帮助你在本地设置 PhD Hunter。</p>
+<section id="id1">
+<h2>前提条件<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>Python</strong>: 3.10 or higher</p></li>
-<li><p><strong>uv</strong>: Recommended package manager (or pip)</p></li>
-<li><p><strong>Browser</strong>: Chrome or Chromium (for Selenium web crawling)</p></li>
+<li><p><strong>Python</strong>: 3.10 或更高</p></li>
+<li><p><strong>uv</strong>: 推荐的包管理器（或 pip）</p></li>
+<li><p><strong>浏览器</strong>: Chrome 或 Chromium（用于 Selenium）</p></li>
 </ul>
 </section>
-<section id="step-by-step-installation">
-<h2>Step-by-Step Installation<a class="headerlink" href="#step-by-step-installation" title="Link to this heading"></a></h2>
+<section id="id2">
+<h2>分步安装<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>Clone the Repository</strong></p>
+<li><p><strong>克隆仓库</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/your-org/phd-hunter.git
 <span class="nb">cd</span><span class="w"> </span>phd-hunter
 </pre></div>
 </div>
 </li>
-<li><p><strong>Create Virtual Environment</strong></p>
-<p>Using <strong>uv</strong> (recommended):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Sync dependencies from pyproject.toml</span>
-uv<span class="w"> </span>sync
+<li><p><strong>创建虚拟环境</strong></p>
+<p>使用 <strong>uv</strong> (推荐):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 
-<span class="c1"># Activate the virtual environment</span>
-<span class="c1"># On Windows (PowerShell):</span>
-.venv<span class="se">\\</span>Scripts<span class="se">\\</span>Activate.ps1
-<span class="c1"># On Windows (CMD):</span>
-.venv<span class="se">\\</span>Scripts<span class="se">\\</span>activate.bat
-<span class="c1"># On Unix/macOS:</span>
-<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<span class="c1"># 激活虚拟环境 (Windows PowerShell)</span>
+.venv<span class="se">\S</span>cripts<span class="se">\A</span>ctivate.ps1
 </pre></div>
 </div>
-<p>Using <strong>pip</strong>:</p>
+<p>使用 <strong>pip</strong>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
-.venv<span class="se">\\</span>Scripts<span class="se">\\</span>activate<span class="w">  </span><span class="c1"># Windows</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+.venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate<span class="w">  </span><span class="c1"># Windows</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 </li>
-<li><p><strong>Install Browser Driver</strong></p>
-<p>PhD Hunter uses Selenium for web crawling. You need Chrome/Chromium and ChromeDriver:</p>
+<li><p><strong>安装浏览器驱动</strong></p>
+<p>PhD Hunter 使用 Selenium 进行网页爬取。需要 Chrome/Chromium 和 ChromeDriver：</p>
 <ul>
-<li><p><strong>Option A: Automatic installation</strong> (推荐)</p>
+<li><p><strong>方式 A: 自动安装</strong> (推荐)</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>webdriver-manager
 </pre></div>
 </div>
 </li>
-<li><p><strong>Option B: Manual installation</strong></p>
+<li><p><strong>方式 B: 手动安装</strong></p>
 <ol class="arabic simple">
-<li><p>Download ChromeDriver from <a class="reference external" href="https://chromedriver.chromium.org/">https://chromedriver.chromium.org/</a></p></li>
-<li><p>Add ChromeDriver to your PATH</p></li>
+<li><p>从 <a class="reference external" href="https://chromedriver.chromium.org/">https://chromedriver.chromium.org/</a> 下载 ChromeDriver</p></li>
+<li><p>将 ChromeDriver 添加到 PATH</p></li>
 </ol>
 </li>
 </ul>
 </li>
-<li><p><strong>Configure Environment</strong></p>
-<p>Copy the example configuration:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>copy<span class="w"> </span>config<span class="se">\\</span>settings.example.yaml<span class="w"> </span>config<span class="se">\\</span>settings.yaml
+<li><p><strong>验证安装</strong></p>
+<p>运行快速检查：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>main.py<span class="w"> </span>--help
 </pre></div>
 </div>
-<p>Edit <code class="docutils literal notranslate"><span class="pre">config/settings.yaml</span></code> and add your API keys:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># LLM Configuration</span>
-<span class="nt">llm</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;openai&quot;</span><span class="w">        </span><span class="c1"># &quot;openai&quot; or &quot;anthropic&quot;</span>
-<span class="w">  </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sk-...&quot;</span><span class="w">         </span><span class="c1"># Your API key</span>
-<span class="w">  </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;gpt-4o&quot;</span><span class="w">           </span><span class="c1"># Model to use</span>
-<span class="w">  </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3</span>
-<span class="w">  </span><span class="nt">max_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4096</span>
-
-<span class="c1"># Crawler Configuration</span>
-<span class="nt">crawlers</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">selenium</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">headless</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">          </span><span class="c1"># Run browser in background</span>
-<span class="w">    </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w">             </span><span class="c1"># Request timeout (seconds)</span>
-<span class="w">    </span><span class="nt">user_agent</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Mozilla/5.0...&quot;</span>
-
-<span class="c1"># Output Configuration</span>
-<span class="nt">output</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">reports_dir</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;./reports&quot;</span>
-<span class="w">  </span><span class="nt">papers_dir</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;./papers&quot;</span>
-<span class="w">  </span><span class="nt">cache_dir</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;./cache&quot;</span>
-
-<span class="c1"># Database (optional)</span>
-<span class="nt">database</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sqlite:///phd_hunter.db&quot;</span>
-</pre></div>
-</div>
-</li>
-<li><p><strong>Verify Installation</strong></p>
-<p>Run the test suite:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v
-</pre></div>
-</div>
-<p>Or run a quick sanity check:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import phd_hunter; print(&#39;OK&#39;)&quot;</span>
-</pre></div>
-</div>
+<p>应该看到可用的命令列表。</p>
 </li>
 </ol>
 </section>
-<section id="troubleshooting">
-<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
-<p><strong>Issue</strong>: <code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError:</span> <span class="pre">No</span> <span class="pre">module</span> <span class="pre">named</span> <span class="pre">'phd_hunter'</span></code></p>
-<p><strong>Solution</strong>: Make sure you’ve installed the package in development mode:</p>
+<section id="id3">
+<h2>故障排除<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p><strong>问题</strong>: <code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError:</span> <span class="pre">No</span> <span class="pre">module</span> <span class="pre">named</span> <span class="pre">'phd_hunter'</span></code></p>
+<p><strong>解决</strong>: 确认已安装包：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
-<p><strong>Issue</strong>: Selenium WebDriver errors</p>
-<p><strong>Solution</strong>: Ensure Chrome/Chromium is installed and ChromeDriver matches your browser version.</p>
-<p><strong>Issue</strong>: <code class="docutils literal notranslate"><span class="pre">PermissionError</span></code> on Windows</p>
-<p><strong>Solution</strong>: Run PowerShell as Administrator or use:</p>
+<p><strong>问题</strong>: Selenium WebDriver 错误</p>
+<p><strong>解决</strong>: 确保 Chrome/Chromium 已安装且 ChromeDriver 版本匹配。</p>
+<p><strong>问题</strong>: 在 Windows 上权限错误</p>
+<p><strong>解决</strong>: 以管理员身份运行 PowerShell 或修改执行策略：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Set-ExecutionPolicy<span class="w"> </span>-Scope<span class="w"> </span>CurrentUser<span class="w"> </span>-ExecutionPolicy<span class="w"> </span>RemoteSigned
 </pre></div>
 </div>
 </section>
-<section id="next-steps">
-<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>下一步<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Read the <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a> documentation</p></li>
-<li><p>Learn about <a class="reference internal" href="crawlers.html"><span class="doc">Crawlers</span></a></p></li>
-<li><p>Explore the <a class="reference internal" href="frontend.html"><span class="doc">Frontend</span></a></p></li>
+<li><p>阅读 <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a> 了解架构</p></li>
+<li><p>学习 <a class="reference internal" href="crawlers.html"><span class="doc">Crawlers</span></a> 了解爬虫</p></li>
+<li><p>查看 <a class="reference internal" href="api.html"><span class="doc">API Reference</span></a> 了解 API 参考</p></li>
 </ul>
 </section>
 </section>

@@ -46,18 +46,18 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a></li>
-<li class="toctree-l1"><a class="reference internal" href="llm.html">LLM Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reports.html">Reports</a></li>
-<li class="toctree-l1"><a class="reference internal" href="frontend.html">Frontend</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">[0.1.0] - 2026-04-19</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">[0.2.0] - 2026-04-21 (进行中)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#changed">Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#unreleased">[Unreleased]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">[0.1.0] - 2026-04-19</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Added</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -88,36 +88,39 @@
              
   <section id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
-<p>All notable changes to PhD Hunter will be documented in this file.</p>
+<p>所有 PhD Hunter 的重大更改都将记录在此。</p>
 <section id="id1">
-<h2>[0.1.0] - 2026-04-19<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<h2>[0.2.0] - 2026-04-21 (进行中)<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>Initial project structure</p></li>
-<li><p>uv-based dependency management</p></li>
-<li><p>Sphinx documentation system</p></li>
-<li><p>Project architecture design</p></li>
-<li><p>Directory structure for crawlers, agents, LLM, reports</p></li>
+<li><p>ArxivCrawler: 按作者搜索论文</p></li>
+<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: 批量获取教授论文</p></li>
+<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: 数据库查询</p></li>
+<li><p>简化项目结构，移除 LLM/Agent/Frontend 模块</p></li>
 </ul>
 </section>
-</section>
-<section id="unreleased">
-<h2>[Unreleased]<a class="headerlink" href="#unreleased" title="Link to this heading"></a></h2>
-<p>Planned features:</p>
+<section id="changed">
+<h3>Changed<a class="headerlink" href="#changed" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>CSRankings crawler implementation</p></li>
-<li><p>Google Scholar data fetching</p></li>
-<li><p>Professor homepage parser</p></li>
-<li><p>arXiv paper downloader</p></li>
-<li><p>OpenAI/Anthropic LLM integration</p></li>
-<li><p>Streamlit frontend</p></li>
-<li><p>Report generation (HTML/PDF/JSON)</p></li>
-<li><p>Batch processing support</p></li>
-<li><p>Caching layer (SQLite/Redis)</p></li>
-<li><p>Docker deployment</p></li>
-<li><p>CI/CD pipeline</p></li>
+<li><p>主入口移至根目录 <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
+<li><p>依赖项精简，移除 LLM 相关依赖</p></li>
+<li><p>文档更新以反映简化架构</p></li>
 </ul>
+</section>
+</section>
+<section id="id2">
+<h2>[0.1.0] - 2026-04-19<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>Added<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>初始项目结构</p></li>
+<li><p>uv 依赖管理</p></li>
+<li><p>Sphinx 文档系统</p></li>
+<li><p>CSRankings 爬虫基础实现</p></li>
+<li><p>SQLite 数据库模型</p></li>
+</ul>
+</section>
 </section>
 </section>
 

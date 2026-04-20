@@ -1,218 +1,140 @@
 Crawlers
 ========
 
-This module handles all web scraping and data collection from academic sources.
+本模块负责从学术来源获取数据。
 
-Overview
---------
+概述
+----
 
-Crawlers are responsible for:
+爬虫负责从不同来源获取数据：
 
-* Fetching professor lists from CSRankings
-* Retrieving publication data from Google Scholar
-* Parsing professor homepages for contact and research info
-* Downloading papers from arXiv
+* 从 CSRankings 获取教授列表
+* 从 arXiv 搜索教授发表的论文
 
-All crawlers respect rate limits and include retry logic.
+所有爬虫遵循速率限制并包含重试逻辑。
 
 CSRankings Crawler
 ------------------
 
-**File**: ``crawlers/csrankings.py``
+**文件**: ``crawlers/csrankings.py``
 
-The CSRankings crawler extracts faculty data from https://csrankings.org.
+从 https://csrankings.org 提取教授数据。
 
-Features:
+功能：
 
-* Select specific institutions and CS sub-areas
-* Extract professor names, homepages, and affiliations
-* Handle dynamic page content via Selenium
+- 选择特定机构和 CS 子领域
+- 提取教授姓名、主页和 affiliations
+- 使用 Selenium 处理动态页面内容
 
-Usage:
+使用：
 
 .. code-block:: python
 
    from phd_hunter.crawlers.csrankings import CSRankingsCrawler
 
    crawler = CSRankingsCrawler(headless=True)
-   professors = crawler.get_professors(
-       institutions=["MIT", "Stanford"],
-       areas=["ai", "ml"]
+   universities, professors = crawler.fetch(
+       areas=["ai"],
+       region="world",
+       max_professors=5
    )
-   # Returns list of Professor objects
+   # 返回 University 和 Professor 对象列表
 
-Data Extracted:
+提取的数据：
 
-- Professor name
-- University
-- Homepage URL
-- Google Scholar profile URL (if available)
-- Research area tags
-
-Google Scholar Crawler
-----------------------
-
-**File**: ``crawlers/scholar.py``
-
-Fetches publication history from Google Scholar profiles.
-
-Features:
-
-* Get publication count and citation metrics
-* Retrieve recent papers (title, venue, year, co-authors)
-* Track citation trends
-
-Usage:
-
-.. code-block:: python
-
-   from phd_hunter.crawlers.scholar import ScholarCrawler
-
-   crawler = ScholarCrawler()
-   profile = crawler.get_profile("https://scholar.google.com/...")
-   # Returns ScholarProfile with publications list
-
-Data Extracted:
-
-- Total citations
-- h-index
-- Recent publications (last 5 years)
-- Publication venues
-- Co-author network
-
-Professor Homepage Crawler
---------------------------
-
-**File**: ``crawlers/professor.py``
-
-Parses individual professor websites for detailed information.
-
-Features:
-
-* Extract contact information (email, office)
-* Parse research interests and current projects
-* Detect if accepting students (招生状态)
-* Find CV/Resume links
-* Extract education background
-
-Usage:
-
-.. code-block:: python
-
-   from phd_hunter.crawlers.professor import ProfessorCrawler
-
-   crawler = ProfessorCrawler()
-   info = crawler.get_info("https://professor.university.edu/~name")
-   # Returns ProfessorInfo object
-
-Data Extracted:
-
-- Email address
-- Office location
-- Research interests (bulleted list)
-- Current projects
-- Lab/group website
-- Accepting students status
+- 大学名称、排名、分数
+- 教授姓名
+- 大学 URL
+- 教授主页（从排名页面提取）
 
 arXiv Crawler
 -------------
 
-**File**: ``crawlers/arxiv.py``
+**文件**: ``crawlers/arxiv_crawler.py``
 
-Downloads papers from arXiv for LLM analysis.
+按作者从 arXiv 搜索论文。
 
-Features:
+功能：
 
-* Search papers by title/author
-* Download PDF and source files
-* Extract abstracts and full text
-* Batch download with progress tracking
+- 按作者姓名搜索论文
+- 按提交日期排序（最新的优先）
+- 返回论文元数据（标题、作者、摘要、年份、PDF 链接）
 
-Usage:
+使用：
 
 .. code-block:: python
 
-   from phd_hunter.crawlers.arxiv import ArXivCrawler
+   from phd_hunter.crawlers.arxiv_crawler import ArxivCrawler
+   from phd_hunter.models import Professor
 
-   crawler = ArXivCrawler()
-   papers = crawler.search(
-       query="author:John Doe",
-       max_results=10
-   )
-   crawler.download(papers, output_dir="./papers")
+   crawler = ArxivCrawler()
+   prof = Professor(name="Yangqiu Song")
+   papers = crawler.fetch(prof, max_papers=10)
+   # 返回 Paper 对象列表
 
-Data Extracted:
+提取的数据：
 
-- Paper title
-- Authors
-- Abstract
-- Categories
-- PDF URL
+- 论文标题
+- 作者列表
+- 摘要
+- 发表年份
 - arXiv ID
+- PDF URL
 
-Configuration
--------------
+配置
+----
 
-Crawlers respect these settings in ``config/settings.yaml``:
+当前配置通过命令行参数传递。关键参数：
 
-.. code-block:: yaml
+.. code-block:: text
 
-   crawlers:
-     selenium:
-       headless: true          # Run browser without UI
-       timeout: 30             # Request timeout (seconds)
-       user_agent: "Mozilla/5.0..."
+   CSRankingsCrawler:
+     --headless / --no-headless   # 无头模式
+     --timeout 30                 # 超时（秒）
+     --max-professors 5          # 每校最大教授数
 
-     rate_limits:
-       csrankings: 1.0         # Seconds between requests
-       scholar: 2.0
-       professor: 1.0
-       arxiv: 0.5
+   ArxivCrawler:
+     --delay 1.0                 # 请求间隔（秒）
+     --max-papers 10             # 每位教授最大论文数
 
-     cache:
-       enabled: true
-       ttl: 86400              # Cache TTL in seconds (1 day)
+缓存
+----
 
-Caching
--------
+所有爬虫结果被缓存以避免冗余请求：
 
-All crawler results are cached to avoid redundant requests:
+- **缓存位置**: 内存缓存（进程内）
+- **缓存键**: 参数 hash
+- **有效期**: 默认 1 天
 
-- **Cache location**: ``./cache/crawlers/``
-- **Cache key**: URL + parameters hash
-- **Invalidation**: TTL-based or manual clear
+速率限制
+--------
 
-Rate Limiting
--------------
+为尊重数据源：
 
-To be respectful to source websites:
+- 请求之间自动延时
+- arXiv: 默认 1 秒间隔（可配置）
 
-- Automatic delays between requests
-- Retry with exponential backoff on failures
-- Respect ``robots.txt`` where applicable
+错误处理
+--------
 
-Error Handling
---------------
+爬虫处理：
 
-Crawlers handle:
+- 网络超时（重试）
+- 页面布局变化（容错处理）
+- 数据缺失（返回部分结果）
 
-* Network timeouts (retry up to 3 times)
-* Changed page layouts (graceful degradation)
-* CAPTCHA/anti-bot measures (pause and alert)
-* Missing data (return partial results)
+添加新爬虫
+----------
 
-Adding New Crawlers
--------------------
+添加新数据源：
 
-To add a new data source:
+1. 创建 ``crawlers/newsource.py``
+2. 继承 ``BaseCrawler``
+3. 实现 ``fetch()`` 方法
+4. 在 ``crawlers/__init__.py`` 中注册
+5. 在 ``main.py`` 中添加命令
 
-1. Create ``crawlers/newsource.py``
-2. Inherit from ``BaseCrawler``
-3. Implement ``fetch()`` method
-4. Register in ``crawlers/__init__.py``
-5. Add tests in ``tests/crawlers/``
-
-Example:
+示例：
 
 .. code-block:: python
 
@@ -220,13 +142,11 @@ Example:
 
    class DBLPCrawler(BaseCrawler):
        def fetch(self, query: str):
-           # Implement crawling logic
+           # 实现爬取逻辑
            pass
 
-See Also
---------
+参见
+----
 
 - :doc:`architecture`
-- :doc:`agents`
-- :doc:`llm`
 - :doc:`api`
