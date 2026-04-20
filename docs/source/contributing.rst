@@ -1,39 +1,36 @@
 Contributing
 ============
 
-Thank you for considering contributing to PhD Hunter! This document outlines the development workflow.
+感谢你考虑为 PhD Hunter 做贡献！本文档概述了开发流程。
 
-Getting Started
----------------
+快速开始
+--------
 
-1. **Fork and clone**
+1. **Fork 并克隆**
 
    .. code-block:: bash
 
       git clone https://github.com/your-username/phd-hunter.git
       cd phd-hunter
 
-2. **Set up development environment**
+2. **设置开发环境**
 
    .. code-block:: bash
 
       uv sync
-      uv run pre-commit install
 
-3. **Create a branch**
+3. **创建分支**
 
    .. code-block:: bash
 
       git checkout -b feature/my-feature
 
-Development Workflow
---------------------
+开发流程
+--------
 
-1. **Write code**
+1. **编写代码**
 
-   Follow PEP 8, use type hints.
-
-   Example:
+   遵循 PEP 8，使用类型提示。
 
    .. code-block:: python
 
@@ -46,257 +43,84 @@ Development Workflow
           """Search for a professor by name."""
           ...
 
-2. **Write tests**
-
-   Place tests in ``tests/`` mirroring source structure.
-
-   .. code-block:: python
-
-      # tests/crawlers/test_csrankings.py
-      def test_csrankings_fetch():
-          crawler = CSRankingsCrawler()
-          result = crawler.fetch()
-          assert len(result) > 0
-
-3. **Run tests**
+2. **运行测试**
 
    .. code-block:: bash
 
-      uv run pytest tests/ -v
+      python -m pytest tests/ -v
 
-4. **Lint and format**
+3. **代码格式化**
 
    .. code-block:: bash
 
-      uv run ruff check .
       uv run black .
+      uv run ruff check .
 
-5. **Check types**
+4. **提交**
 
-   .. code-block:: bash
-
-      uv run mypy src/phd_hunter/
-
-6. **Commit**
-
-   Follow conventional commits:
+   遵循 conventional commits:
 
    .. code-block:: text
 
-      feat: add arxiv download batch mode
-      fix: handle scholar profile not found
+      feat: add arxiv batch mode
+      fix: handle professor not found
       docs: update installation guide
-      refactor: simplify crawler base class
-      test: add tests for professor parser
 
-   Pre-commit hooks will run automatically.
+代码规范
+--------
 
-7. **Push and PR**
+**Python**: PEP 8, 88 字符行限制
 
-   .. code-block:: bash
+**类型提示**: 所有公开函数必需
 
-      git push origin feature/my-feature
+**Docstrings**: Google 风格
 
-   Open a PR on GitHub with:
+**Imports**: 标准库 → 第三方 → 本地
 
-   - Clear description
-   - Linked issue (if applicable)
-   - Screenshots for UI changes
-   - Updated documentation
+添加功能
+--------
 
-Code Style
-----------
+1. **添加新爬虫**
 
-**Python**: PEP 8, 88 character line limit
+   - 创建 ``crawlers/newsource.py``
+   - 继承 ``BaseCrawler``
+   - 实现 ``fetch()`` 方法
+   - 在 ``crawlers/__init__.py`` 注册
+   - 在 ``main.py`` 添加命令
 
-**Type hints**: Required for all public functions
+2. **修改 CLI**
 
-   .. code-block:: python
+   在 ``main.py`` 中添加新的子命令和参数。
 
-      def process_paper(paper: Paper) -> Analysis:
-          ...
+文档
+----
 
-**Docstrings**: Google style
-
-   .. code-block:: python
-
-      def fetch_professor(name: str) -> Professor:
-          """Fetch professor data from CSRankings.
-
-          Args:
-              name: Professor's full name
-
-          Returns:
-              Professor object with extracted data
-
-          Raises:
-              CrawlerError: If page cannot be fetched
-          """
-          ...
-
-**Imports**: Standard library → third-party → local
-
-   .. code-block:: python
-
-      import os
-      from pathlib import Path
-
-      import requests
-      from bs4 import BeautifulSoup
-
-      from phd_hunter.config import settings
-
-Testing
--------
-
-**Unit tests**: Test individual functions
-
-.. code-block:: python
-
-   def test_parse_email():
-       html = "<a href='mailto:test@univ.edu'>"
-       email = parse_email(html)
-       assert email == "test@univ.edu"
-
-**Integration tests**: Test component interactions
-
-.. code-block:: python
-
-   def test_crawl_and_analyze():
-       professor = crawler.fetch("Prof Name")
-       analysis = researcher.analyze(professor)
-       assert analysis.score > 0
-
-**Run all tests**:
-
-.. code-block:: bash
-
-   uv run pytest tests/ -v --cov=phd_hunter --cov-report=html
-
-Project Structure
------------------
-
-.. code-block:: text
-
-   phd_hunter/
-   ├── __init__.py           # Package init
-   ├── main.py              # Entry point
-   ├── config.py            # Configuration
-   │
-   ├── crawlers/            # Web scrapers
-   │   ├── __init__.py
-   │   ├── base.py          # BaseCrawler class
-   │   ├── csrankings.py
-   │   └── ...
-   │
-   ├── agents/              # AI agents
-   │   ├── __init__.py
-   │   ├── base.py
-   │   ├── coordinator.py
-   │   └── ...
-   │
-   ├── llm/                 # LLM integration
-   │   ├── __init__.py
-   │   ├── client.py
-   │   └── prompts.py
-   │
-   ├── reports/             # Report generation
-   │   ├── __init__.py
-   │   ├── generator.py
-   │   └── templates/
-   │
-   ├── utils/               # Utilities
-   │   ├── __init__.py
-   │   ├── logger.py
-   │   └── cache.py
-   │
-   └── frontend/            # Streamlit UI
-       ├── app.py
-       └── pages/
-
-Adding Features
----------------
-
-1. **Add a new crawler**
-
-   - Create ``crawlers/newsource.py``
-   - Inherit from ``BaseCrawler``
-   - Implement ``fetch()`` method
-   - Add tests in ``tests/crawlers/``
-   - Update ``crawlers/__init__.py``
-
-2. **Add a new agent**
-
-   - Create ``agents/myagent.py``
-   - Inherit from ``BaseAgent``
-   - Implement ``process()`` method
-   - Register in ``coordinator.py``
-   - Add tests
-
-3. **Add a new report format**
-
-   - Create ``reports/formats/myformat.py``
-   - Implement ``generate()``
-   - Add to factory in ``generator.py``
-
-4. **Update documentation**
-
-   - Update relevant ``docs/source/*.rst``
-   - Add docstrings to code
-   - Update README if needed
-
-Documentation
--------------
-
-Build docs locally:
+构建文档：
 
 .. code-block:: bash
 
    cd docs
    make html
 
-View: ``docs/build/html/index.html``
+提交代码时同时更新文档。
 
-Submit docs changes with code changes.
+Pull Request 检查清单
+---------------------
 
-Pull Request Checklist
-----------------------
+- [ ] 代码符合规范
+- [ ] 测试通过
+- [ ] 类型提示完整
+- [ ] Docstrings 已更新
+- [ ] 文档已更新
+- [ ] CHANGELOG 已更新
 
-- [ ] Code follows style guide
-- [ ] Tests added/updated and passing
-- [ ] Type hints complete
-- [ ] Docstrings updated
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-- [ ] Pre-commit hooks passed
-
-Release Process
----------------
-
-1. Update version in ``pyproject.toml``
-2. Update ``CHANGELOG.md``
-3. Create release PR
-4. Merge to main
-5. Create GitHub release
-6. Publish to PyPI:
-
-   .. code-block:: bash
-
-      uv publish
-
-Getting Help
-------------
+获取帮助
+--------
 
 - Issues: https://github.com/your-org/phd-hunter/issues
-- Discussions: https://github.com/your-org/phd-hunter/discussions
-- Email: team@phdhunter.dev
+- 邮箱: team@phdhunter.dev
 
-Code of Conduct
----------------
+许可证
+------
 
-Be respectful, constructive, and inclusive. See ``CODE_OF_CONDUCT.md``.
-
-License
--------
-
-MIT License - see ``LICENSE`` file.
+MIT License - 详见 ``LICENSE`` 文件。

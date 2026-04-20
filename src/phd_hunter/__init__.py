@@ -6,3 +6,9 @@
 
 __version__ = "0.1.0"
 __author__ = "PhD Hunter Team"
+
+# Convenience imports
+from .models import Professor, University, ProfessorStatus
+from .database import Database
+
+__all__ = ["Professor", "University", "ProfessorStatus", "Database"]

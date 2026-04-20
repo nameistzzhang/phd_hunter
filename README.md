@@ -1,18 +1,19 @@
 # PhD Hunter 🎓
 
-**PhD 导师套磁筛选助手** - 一个智能化的 PhD 导师匹配与分析系统
+**PhD 导师套磁筛选助手** - 自动化收集 CS 教授信息及其最新论文
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![Status](https://img.shields.io/badge/status-alpha-yellow.svg)
 
-## ✨ 功能特色
+## ✨ 当前功能
 
-- 📊 **智能匹配** - 基于 LLM 分析论文和研究方向，计算与你的匹配分数
-- 🔍 **数据整合** - 自动爬取 CSRankings、Google Scholar、arXiv 数据
-- 📝 **自动报告** - 生成详细的套磁建议、风险评估和申请策略
-- 🌐 **Web 界面** - 基于 Streamlit 的友好交互界面
-- ⚡ **高效可靠** - 异步处理、缓存机制、重试逻辑
+- 📊 **CSRankings 爬取** - 自动获取各大学 CS 领域教授排名和名单
+- 📝 **arXiv 论文获取** - 按作者搜索并保存最新论文元数据
+- 💾 **SQLite 存储** - 所有数据本地持久化
+- 🔧 **CLI 命令行** - 简单易用的命令行界面
+
+> **注意**：当前版本为简化版，移除了 LLM 分析、Web 界面等复杂功能，专注于核心数据收集。
 
 ## 🚀 快速开始
 
@@ -20,7 +21,7 @@
 
 - Python 3.10+
 - [uv](https://github.com/astral-sh/uv) (推荐) 或 pip
-- Chrome/Chromium 浏览器 (用于 Selenium)
+- Chrome/Chromium 浏览器（用于 Selenium）
 
 ### 安装
 
@@ -32,187 +33,169 @@ cd phd-hunter
 # 2. 安装依赖
 uv sync
 
-# 3. 复制配置文件
-copy config\settings.example.yaml config\settings.yaml
-
-# 4. 编辑配置文件，填入你的 API Keys
-# config/settings.yaml
+# 或使用 pip
+pip install -e .
 ```
 
-### 运行
+### 使用
 
 ```bash
-# 启动前端界面
-uv run streamlit run src/phd_hunter/frontend/app.py
+# 1. 爬取教授数据
+python main.py crawl --area ai --region world --max-professors 5
 
-# 或启动 API 服务
-uv run python src/phd_hunter/api.py
+# 2. 获取论文
+python main.py fetch-papers --max-papers 10
+
+# 3. 查看统计
+python main.py stats
+
+# 4. 列出教授
+python main.py list --limit 20
 ```
-
-访问 http://localhost:8501 开始使用！
 
 ## 📁 项目结构
 
 ```
 phd_hunter/
-├── src/phd_hunter/       # 主代码包
-│   ├── crawlers/         # 爬虫模块
-│   │   ├── csrankings.py # CSRankings 爬取
-│   │   ├── scholar.py    # Google Scholar (待实现)
-│   │   ├── professor.py  # 导师主页解析 (待实现)
-│   │   └── arxiv.py      # arXiv 下载 (待实现)
-│   ├── agents/           # Agent 模块 (待实现)
-│   │   ├── coordinator.py
-│   │   ├── researcher.py
-│   │   └── reporter.py
-│   ├── llm/              # LLM 接口
-│   │   ├── client.py     # LLM 客户端
-│   │   └── prompts.py    # Prompt 模板
-│   ├── reports/          # 报告生成 (待实现)
-│   ├── utils/            # 工具模块
-│   │   ├── config.py     # 配置管理
-│   │   ├── logger.py     # 日志
-│   │   └── helpers.py    # 辅助函数
-│   ├── frontend/         # Streamlit 前端
-│   │   └── app.py
-│   ├── api.py            # FastAPI 后端
-│   ├── models.py         # 数据模型
-│   └── main.py           # 主程序入口
-├── config/               # 配置文件
-├── docs/                 # Sphinx 文档
-├── tests/                # 测试文件
-├── pyproject.toml        # 项目配置
-└── README.md
+├── main.py                    # 命令行入口 (根目录)
+├── arxiv_demo.py              # arXiv API 演示脚本
+├── pyproject.toml             # 项目配置
+├── README.md                  # 项目说明
+├── src/phd_hunter/
+│   ├── __init__.py           # 包初始化
+│   ├── models.py             # Pydantic 数据模型
+│   ├── database.py           # SQLite 数据库操作
+│   ├── crawlers/
+│   │   ├── __init__.py       # 导出 ArxivCrawler, CSRankingsCrawler
+│   │   ├── base.py           # 爬虫基类 (缓存支持)
+│   │   ├── csrankings.py     # CSRankings 爬虫 (Selenium)
+│   │   └── arxiv_crawler.py  # arXiv 爬虫 (arxiv API)
+│   └── utils/
+│       ├── logger.py         # 日志配置
+│       └── helpers.py        # 工具函数
+└── docs/                     # Sphinx 文档 (可选)
 ```
 
-## 🔧 配置
+## 🗄️ 数据库结构
 
-编辑 `config/settings.yaml`:
+项目使用 SQLite 存储数据，包含两张表：
 
-```yaml
-llm:
-  provider: "openai"        # "openai" 或 "anthropic"
-  api_key: "your-api-key"
-  model: "gpt-4o"
+### professors 表
+- 教授基本信息（姓名、大学、院系、邮箱等）
+- 研究方向和来源链接
+- 论文统计和匹配分数
 
-crawlers:
-  selenium:
-    headless: true
-    timeout: 30
+### papers 表
+- 论文元数据（标题、作者、摘要、年份）
+- arXiv ID 和 PDF 链接
+- 关联到教授记录
 
-output:
-  reports_dir: "./reports"
-  papers_dir: "./papers"
-```
+## 🔧 命令行详解
 
-或设置环境变量：
+### `crawl` - 爬取教授信息
+
+从 CSRankings 获取教授列表。
 
 ```bash
-# Windows PowerShell
-$env:OPENAI_API_KEY="sk-..."
+python main.py crawl --area ai --region world --max-professors 5
+```
 
-# Unix/macOS
-export OPENAI_API_KEY="sk-..."
+**参数：**
+- `--area`：研究领域（默认：`ai`）
+- `--region`：地区过滤（默认：`world`）
+- `--max-universities`：最大大学数量（默认：全部）
+- `--max-professors`：每所大学最大教授数（默认：5）
+- `--no-headless`：显示浏览器窗口
+- `--timeout`：页面超时（秒，默认：30）
+- `-v, --verbose`：详细日志
+
+### `fetch-papers` - 获取论文
+
+从 arXiv 搜索并保存教授的论文。
+
+```bash
+python main.py fetch-papers --max-papers 10 --max-professors 50
+```
+
+**参数：**
+- `--max-papers`：每位教授最大论文数（默认：10）
+- `--max-professors`：最大处理教授数（默认：全部）
+- `--delay`：请求间隔（秒，默认：1.0）
+
+### `stats` - 统计信息
+
+显示数据库统计摘要。
+
+```bash
+python main.py stats
+```
+
+### `list` - 列出教授
+
+查看数据库中的教授记录。
+
+```bash
+python main.py list --limit 20 --min-score 50
+```
+
+**参数：**
+- `--limit`：显示数量限制
+- `--min-score`：最低匹配分数过滤
+
+## ⚠️ 已知限制
+
+1. **arXiv 覆盖度**：并非所有教授都在 arXiv 发表论文
+2. **作者歧义**：arXiv 作者搜索可能包含重名结果（后续可改进消歧）
+3. **速率限制**：arXiv API 限制每分钟约 30 次请求，代码已包含延时
+
+## 📊 数据库文件
+
+默认数据库文件：`phd_hunter.db`
+
+```bash
+# 使用 sqlite3 命令行查看
+sqlite3 phd_hunter.db "SELECT name FROM sqlite_master WHERE type='table'"
+
+# 导出为 JSON
+python -c "from phd_hunter.database import Database; db=Database(); db.export_to_json('export.json')"
+```
+
+## 🔍 arXiv 演示
+
+运行 `arxiv_demo.py` 测试作者搜索效果：
+
+```bash
+python arxiv_demo.py
 ```
 
 ## 📖 文档
 
-> 🌐 **在线文档已发布！** 访问 https://nameistzzhang.github.io/phd_hunter/ 查看最新的自动构建文档。
-
 完整文档见 `docs/` 目录或在线浏览：
-
 - [安装指南](docs/source/installation.rst)
 - [系统架构](docs/source/architecture.rst)
 - [爬虫模块](docs/source/crawlers.rst)
-- [Agent 系统](docs/source/agents.rst)
-- [LLM 集成](docs/source/llm.rst)
-- [报告生成](docs/source/reports.rst)
-- [前端界面](docs/source/frontend.rst)
 - [API 参考](docs/source/api.rst)
-- [贡献指南](docs/source/contributing.rst)
 
 构建文档：
-
 ```bash
-cd docs
-make html
+cd docs && make html
 ```
 
-## 🧪 测试
+## 🧪 开发
+
+### 运行测试
 
 ```bash
-# 运行所有测试
 uv run pytest tests/ -v
+```
 
-# 带覆盖率报告
-uv run pytest --cov=phd_hunter --cov-report=html
+### 代码检查
 
-# 类型检查
-uv run mypy src/phd_hunter/
-
-# 代码格式化检查
+```bash
 uv run black --check src/
 uv run ruff check src/
+uv run mypy src/
 ```
-
-## 🛠️ 开发
-
-### 代码规范
-
-- 遵循 PEP 8
-- 使用类型提示
-- Google 风格 docstrings
-- 提交前运行 pre-commit hooks
-
-```bash
-uv run pre-commit install
-```
-
-### 添加新功能
-
-1. Fork 并创建功能分支
-2. 编写代码和测试
-3. 确保测试通过
-4. 提交 PR
-
-## 📊 使用示例
-
-```python
-from phd_hunter import PhDHunter
-
-# 初始化
-hunter = PhDHunter()
-
-# 搜索教授
-results = await hunter.search(
-    universities=["MIT", "Stanford"],
-    research_area="machine learning",
-    max_professors=30
-)
-
-# 查看结果
-for prof in results.professors:
-    print(f"{prof.name} - 匹配度: {prof.match_score:.1f}%")
-```
-
-## 🔮 路线图
-
-- [x] 项目结构和文档
-- [x] CSRankings 爬虫基础实现
-- [ ] Google Scholar 数据获取
-- [ ] 导师主页解析
-- [ ] arXiv 论文下载
-- [ ] LLM 分析流水线
-- [ ] 报告生成器
-- [ ] Streamlit 前端完善
-- [ ] FastAPI 后端完善
-- [ ] 数据库持久化
-- [ ] Docker 部署
-- [ ] 批量处理
-
-## 🤝 贡献
-
-欢迎贡献！请阅读 [贡献指南](docs/source/contributing.rst) 了解详情。
 
 ## 📄 许可证
 

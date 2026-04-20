@@ -77,3 +77,7 @@ class BaseCrawler(ABC):
         import pickle
         with open(path, 'rb') as f:
             self._cache = pickle.load(f)
+
+    def close(self) -> None:
+        """Close crawler and cleanup resources. Override in subclass."""
+        pass

@@ -1,143 +1,95 @@
 Installation Guide
 ==================
 
-This guide will help you set up PhD Hunter on your machine.
+本指南帮助你在本地设置 PhD Hunter。
 
-Prerequisites
--------------
+前提条件
+--------
 
-- **Python**: 3.10 or higher
-- **uv**: Recommended package manager (or pip)
-- **Browser**: Chrome or Chromium (for Selenium web crawling)
+* **Python**: 3.10 或更高
+* **uv**: 推荐的包管理器（或 pip）
+* **浏览器**: Chrome 或 Chromium（用于 Selenium）
 
-Step-by-Step Installation
---------------------------
+分步安装
+--------
 
-1. **Clone the Repository**
+1. **克隆仓库**
 
    .. code-block:: bash
 
       git clone https://github.com/your-org/phd-hunter.git
       cd phd-hunter
 
-2. **Create Virtual Environment**
+2. **创建虚拟环境**
 
-   Using **uv** (recommended):
+   使用 **uv** (推荐):
 
    .. code-block:: bash
 
-      # Sync dependencies from pyproject.toml
       uv sync
 
-      # Activate the virtual environment
-      # On Windows (PowerShell):
-      .venv\\Scripts\\Activate.ps1
-      # On Windows (CMD):
-      .venv\\Scripts\\activate.bat
-      # On Unix/macOS:
-      source .venv/bin/activate
+      # 激活虚拟环境 (Windows PowerShell)
+      .venv\Scripts\Activate.ps1
 
-   Using **pip**:
+   使用 **pip**:
 
    .. code-block:: bash
 
       python -m venv .venv
-      .venv\\Scripts\\activate  # Windows
-      pip install -e ".[dev]"
+      .venv\Scripts\activate  # Windows
+      pip install -e .
 
-3. **Install Browser Driver**
+3. **安装浏览器驱动**
 
-   PhD Hunter uses Selenium for web crawling. You need Chrome/Chromium and ChromeDriver:
+   PhD Hunter 使用 Selenium 进行网页爬取。需要 Chrome/Chromium 和 ChromeDriver：
 
-   - **Option A: Automatic installation** (推荐)
+   - **方式 A: 自动安装** (推荐)
 
      .. code-block:: bash
 
         uv run pip install webdriver-manager
 
-   - **Option B: Manual installation**
+   - **方式 B: 手动安装**
 
-     1. Download ChromeDriver from https://chromedriver.chromium.org/
-     2. Add ChromeDriver to your PATH
+     1. 从 https://chromedriver.chromium.org/ 下载 ChromeDriver
+     2. 将 ChromeDriver 添加到 PATH
 
-4. **Configure Environment**
+4. **验证安装**
 
-   Copy the example configuration:
-
-   .. code-block:: bash
-
-      copy config\\settings.example.yaml config\\settings.yaml
-
-   Edit ``config/settings.yaml`` and add your API keys:
-
-   .. code-block:: yaml
-
-      # LLM Configuration
-      llm:
-        provider: "openai"        # "openai" or "anthropic"
-        api_key: "sk-..."         # Your API key
-        model: "gpt-4o"           # Model to use
-        temperature: 0.3
-        max_tokens: 4096
-
-      # Crawler Configuration
-      crawlers:
-        selenium:
-          headless: true          # Run browser in background
-          timeout: 30             # Request timeout (seconds)
-          user_agent: "Mozilla/5.0..."
-
-      # Output Configuration
-      output:
-        reports_dir: "./reports"
-        papers_dir: "./papers"
-        cache_dir: "./cache"
-
-      # Database (optional)
-      database:
-        enabled: false
-        url: "sqlite:///phd_hunter.db"
-
-5. **Verify Installation**
-
-   Run the test suite:
+   运行快速检查：
 
    .. code-block:: bash
 
-      uv run pytest tests/ -v
+      python main.py --help
 
-   Or run a quick sanity check:
+   应该看到可用的命令列表。
 
-   .. code-block:: bash
+故障排除
+--------
 
-      uv run python -c "import phd_hunter; print('OK')"
+**问题**: ``ModuleNotFoundError: No module named 'phd_hunter'``
 
-Troubleshooting
----------------
-
-**Issue**: ``ModuleNotFoundError: No module named 'phd_hunter'``
-
-**Solution**: Make sure you've installed the package in development mode:
+**解决**: 确认已安装包：
 
 .. code-block:: bash
 
    pip install -e .
 
-**Issue**: Selenium WebDriver errors
+**问题**: Selenium WebDriver 错误
 
-**Solution**: Ensure Chrome/Chromium is installed and ChromeDriver matches your browser version.
+**解决**: 确保 Chrome/Chromium 已安装且 ChromeDriver 版本匹配。
 
-**Issue**: ``PermissionError`` on Windows
+**问题**: 在 Windows 上权限错误
 
-**Solution**: Run PowerShell as Administrator or use:
+**解决**: 以管理员身份运行 PowerShell 或修改执行策略：
 
 .. code-block:: bash
 
    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
-Next Steps
-----------
+下一步
+------
 
-- Read the :doc:`architecture` documentation
-- Learn about :doc:`crawlers`
-- Explore the :doc:`frontend`
+- 阅读 :doc:`architecture` 了解架构
+- 学习 :doc:`crawlers` 了解爬虫
+- 查看 :doc:`api` 了解 API 参考

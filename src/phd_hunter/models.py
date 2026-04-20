@@ -14,9 +14,24 @@ class ProfessorStatus(str, Enum):
     CONDITIONAL = "conditional"
 
 
+class University(BaseModel):
+    """University/institution data from CSRankings."""
+    id: Optional[int] = None
+    name: str
+    rank: int
+    score: float
+    paper_count: int
+    cs_rankings_url: str
+    department_url: Optional[str] = None
+    location: Optional[str] = None  # city, country
+    # Will be populated from faculty pages
+    professor_count: int = 0
+    faculty_url: Optional[str] = None
+
+
 class Professor(BaseModel):
     """Professor data model."""
-    id: str
+    id: Optional[int] = None
     name: str
     university: str
     department: Optional[str] = None
@@ -48,7 +63,7 @@ class Professor(BaseModel):
 
 class Paper(BaseModel):
     """Paper data model."""
-    id: str
+    id: Optional[int] = None
     arxiv_id: Optional[str] = None
     title: str
     authors: List[str] = Field(default_factory=list)

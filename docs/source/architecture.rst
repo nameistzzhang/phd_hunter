@@ -1,157 +1,147 @@
 Architecture Overview
 =====================
 
-This document describes the system architecture of PhD Hunter.
+本文档描述 PhD Hunter 的系统架构。
 
-System Design
--------------
+系统设计
+--------
 
-PhD Hunter follows a modular, agent-based architecture where specialized agents work together to collect, analyze, and report on potential PhD advisors.
+PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库和命令行界面三个部分。
 
 .. code-block:: text
 
-   ┌─────────────────────────────────────────────────────────────────┐
-   │                         Frontend (Streamlit)                    │
-   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-   │  │   Search    │  │  Results    │  │   Reports   │            │
-   │  │    Page     │  │   Page      │  │    Page     │            │
-   │  └─────────────┘  └─────────────┘  └─────────────┘            │
-   └─────────────────────────────┬───────────────────────────────────┘
-                                 │ HTTP/REST
-                    ┌────────────▼────────────┐
-                    │   FastAPI Backend       │
-                    │  ┌──────────────────┐  │
-                    │  │  API Routes      │  │
-                    │  │  - /search       │  │
-                    │  │  - /professors   │  │
-                    │  │  - /reports      │  │
-                    │  └──────────────────┘  │
-                    └────────────┬────────────┘
-                                 │
-        ┌────────────────────────┼────────────────────────┐
-        │                        │                        │
-┌───────▼───────┐    ┌───────────▼──────────┐   ┌────────▼─────────┐
-│  Coordinator  │    │    Researcher        │   │    Reporter      │
-│    Agent      │◄───►│     Agent            │◄──►│     Agent        │
-│               │    │                      │   │                  │
-│ - Orchestrate │    │ - Fetch papers       │   │ - Generate       │
-│ - Manage flow │    │ - Analyze content    │   │   reports        │
-│ - Cache mgmt  │    │ - Score relevance    │   │ - Format output  │
-└───────┬───────┘    └───────────┬──────────┘   └────────┬─────────┘
-        │                        │                        │
-        ▼                        ▼                        ▼
-┌──────────────────┐    ┌──────────────────┐   ┌──────────────────┐
-│   Crawlers       │    │   LLM Client     │   │   Templates      │
-│                  │    │                  │   │                  │
-│ - csrankings     │    │ - OpenAI API     │   │ - HTML           │
-│ - google_scholar │    │ - Anthropic API  │   │ - PDF            │
-│ - professor      │    │ - Prompt mgmt    │   │ - Markdown       │
-│ - arxiv          │    │ - Rate limiting  │   │                  │
-└──────────────────┘    └──────────────────┘   └──────────────────┘
+   ┌─────────────────────────────────────────────┐
+   │         Command Line Interface              │
+   │  (main.py: crawl / fetch-papers / stats)    │
+   └─────────────────┬───────────────────────────┘
+                     │
+       ┌─────────────┼─────────────┐
+       ▼             ▼             ▼
+   ┌────────┐   ┌──────────┐   ┌─────────┐
+   │ CSRank │   │  Arxiv  │   │  SQLite│
+   │  ings  │   │ Crawler │   │ Database│
+   │Crawler │   │          │   │         │
+   └────────┘   └──────────┘   └─────────┘
 
-Core Components
----------------
-
-1. **Crawlers** (crawlers/)
-
-   Web crawlers for gathering data from various sources:
-
-   - ``csrankings.py``: Scrapes CSRankings.org for university rankings and faculty lists
-   - ``scholar.py``: Fetches publication data from Google Scholar profiles
-   - ``professor.py``: Parses professor homepages for contact info and research interests
-   - ``arxiv.py``: Downloads papers from arXiv API
-
-2. **Agents** (agents/)
-
-   Intelligent agents that process information:
-
-   - ``coordinator.py``: Orchestrates the entire workflow, manages caches
-   - ``researcher.py``: Analyzes papers and evaluates professor-student fit
-   - ``reporter.py``: Generates final assessment reports
-
-3. **LLM Module** (llm/)
-
-   LLM integration layer:
-
-   - ``client.py``: Unified interface for OpenAI and Anthropic APIs
-   - ``prompts.py``: System prompts and templates for different analysis tasks
-
-4. **Reports** (reports/)
-
-   Report generation and management:
-
-   - ``templates/``: Jinja2 templates for HTML/PDF reports
-   - ``generator.py``: Assembles report components
-
-5. **Utils** (utils/)
-
-   Shared utilities:
-
-   - ``config.py``: Configuration loading and validation
-   - ``logger.py``: Structured logging setup
-   - ``helpers.py``: Common helper functions
-
-6. **Frontend** (frontend/)
-
-   User interface:
-
-   - ``app.py``: Main Streamlit application
-   - ``pages/``: Additional pages (history, settings, about)
-
-Data Flow
----------
-
-1. **Search Phase**
-
-   User inputs target universities/areas → Coordinator queries CSRankings → Crawler extracts professor list → Results cached.
-
-2. **Research Phase**
-
-   For each professor:
-
-   - Fetch Google Scholar profile → Get recent papers
-   - Download papers from arXiv (if available)
-   - Crawl professor homepage for research interests
-   - LLM analyzes papers and extracts themes
-   - Compute match score
-
-3. **Report Phase**
-
-   Coordinator aggregates all data → Reporter generates comprehensive report → User reviews results.
-
-Configuration
--------------
-
-See :doc:`/installation` for setup details. Key configuration files:
-
-- ``config/settings.yaml``: Main configuration
-- ``pyproject.toml``: Python dependencies and project metadata
-
-Extensibility
--------------
-
-The modular design makes it easy to extend:
-
-- Add new crawlers for additional sources (e.g., DBLP, Semantic Scholar)
-- Integrate different LLM providers
-- Customize report templates
-- Add new analysis agents
-
-Development Workflow
---------------------
-
-1. Create a new branch for features
-2. Write tests in ``tests/``
-3. Run ``uv run pytest`` to test
-4. Update documentation in ``docs/``
-5. Submit PR
-
-See Also
+核心组件
 --------
 
+1. **CLI 入口** (main.py)
+
+   命令行主程序，提供三个子命令：
+
+   - ``crawl``: 从 CSRankings 爬取教授信息
+   - ``fetch-papers``: 从 arXiv 获取教授论文
+   - ``stats`` / ``list``: 查看数据库内容
+
+2. **爬虫模块** (crawlers/)
+
+   - ``CSRankingsCrawler``: 使用 Selenium 爬取 CSRankings.org 的大学排名和教授列表
+   - ``ArxivCrawler``: 使用 arXiv API 按作者搜索论文
+
+   所有爬虫继承自 ``BaseCrawler``，支持缓存机制。
+
+3. **数据库** (database.py)
+
+   SQLite 数据库，包含：
+
+   - ``professors`` 表: 教授基本信息
+   - ``papers`` 表: 论文元数据
+
+   提供完整的 CRUD 操作和数据导出功能。
+
+4. **数据模型** (models.py)
+
+   Pydantic 模型定义：
+
+   - ``Professor``: 教授信息
+   - ``Paper``: 论文信息
+   - ``University``: 大学信息
+
+5. **工具模块** (utils/)
+
+   - ``logger.py``: 结构化日志配置
+   - ``helpers.py``: 通用辅助函数
+
+数据流程
+--------
+
+1. **爬取阶段**
+
+   .. code-block::
+
+      User → main.py crawl
+         → CSRankingsCrawler.fetch()
+         → Selenium 打开浏览器
+         → 解析 HTML 提取教授列表
+         → Database.upsert_professor()
+         → SQLite 保存
+
+2. **论文获取阶段**
+
+   .. code-block::
+
+      User → main.py fetch-papers
+         → Database.list_professors()
+         → 对每位教授:
+            ArxivCrawler.fetch(professor)
+            → arxiv.Search 查询
+            → 解析返回结果
+            → Database.upsert_paper()
+         → SQLite 保存
+
+3. **查询阶段**
+
+   .. code-block::
+
+      User → main.py stats / list
+         → Database.get_stats() / list_professors()
+         → 格式化输出
+
+配置
+----
+
+当前版本无需配置文件，所有参数通过命令行传递。
+
+未来可能的配置项：
+
+- 数据库路径
+- 爬虫延迟时间
+- 缓存设置
+- 日志级别
+
+扩展性
+------
+
+添加新爬虫：
+
+1. 创建 ``crawlers/newsource.py``
+2. 继承 ``BaseCrawler``
+3. 实现 ``fetch()`` 方法
+4. 在 ``crawlers/__init__.py`` 中注册
+5. 在 main.py 中添加对应命令
+
+示例：
+
+.. code-block:: python
+
+   from .base import BaseCrawler
+
+   class DBLPCrawler(BaseCrawler):
+       def fetch(self, query: str):
+           # 实现爬取逻辑
+           pass
+
+开发流程
+--------
+
+1. 修改代码
+2. 运行验证: ``python main.py ...``
+3. 提交变更
+
+参见
+----
+
 - :doc:`crawlers`
-- :doc:`agents`
-- :doc:`llm`
-- :doc:`reports`
-- :doc:`frontend`
 - :doc:`api`
+- :doc:`contributing`
