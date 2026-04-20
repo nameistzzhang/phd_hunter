@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crawlers &mdash; PhD Hunter 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Agents" href="agents.html" />
+    <link rel="prev" title="Architecture Overview" href="architecture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PhD Hunter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Crawlers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#csrankings-crawler">CSRankings Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#google-scholar-crawler">Google Scholar Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#professor-homepage-crawler">Professor Homepage Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#arxiv-crawler">arXiv Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#caching">Caching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rate-limiting">Rate Limiting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-new-crawlers">Adding New Crawlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="llm.html">LLM Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reports.html">Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="frontend.html">Frontend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PhD Hunter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Crawlers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/crawlers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="crawlers">
+<h1>Crawlers<a class="headerlink" href="#crawlers" title="Link to this heading"></a></h1>
+<p>This module handles all web scraping and data collection from academic sources.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Crawlers are responsible for:</p>
+<ul class="simple">
+<li><p>Fetching professor lists from CSRankings</p></li>
+<li><p>Retrieving publication data from Google Scholar</p></li>
+<li><p>Parsing professor homepages for contact and research info</p></li>
+<li><p>Downloading papers from arXiv</p></li>
+</ul>
+<p>All crawlers respect rate limits and include retry logic.</p>
+</section>
+<section id="csrankings-crawler">
+<h2>CSRankings Crawler<a class="headerlink" href="#csrankings-crawler" title="Link to this heading"></a></h2>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/csrankings.py</span></code></p>
+<p>The CSRankings crawler extracts faculty data from <a class="reference external" href="https://csrankings.org">https://csrankings.org</a>.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Select specific institutions and CS sub-areas</p></li>
+<li><p>Extract professor names, homepages, and affiliations</p></li>
+<li><p>Handle dynamic page content via Selenium</p></li>
+</ul>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.csrankings</span><span class="w"> </span><span class="kn">import</span> <span class="n">CSRankingsCrawler</span>
+
+<span class="n">crawler</span> <span class="o">=</span> <span class="n">CSRankingsCrawler</span><span class="p">(</span><span class="n">headless</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">professors</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">get_professors</span><span class="p">(</span>
+    <span class="n">institutions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MIT&quot;</span><span class="p">,</span> <span class="s2">&quot;Stanford&quot;</span><span class="p">],</span>
+    <span class="n">areas</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ai&quot;</span><span class="p">,</span> <span class="s2">&quot;ml&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="c1"># Returns list of Professor objects</span>
+</pre></div>
+</div>
+<p>Data Extracted:</p>
+<ul class="simple">
+<li><p>Professor name</p></li>
+<li><p>University</p></li>
+<li><p>Homepage URL</p></li>
+<li><p>Google Scholar profile URL (if available)</p></li>
+<li><p>Research area tags</p></li>
+</ul>
+</section>
+<section id="google-scholar-crawler">
+<h2>Google Scholar Crawler<a class="headerlink" href="#google-scholar-crawler" title="Link to this heading"></a></h2>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/scholar.py</span></code></p>
+<p>Fetches publication history from Google Scholar profiles.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Get publication count and citation metrics</p></li>
+<li><p>Retrieve recent papers (title, venue, year, co-authors)</p></li>
+<li><p>Track citation trends</p></li>
+</ul>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.scholar</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScholarCrawler</span>
+
+<span class="n">crawler</span> <span class="o">=</span> <span class="n">ScholarCrawler</span><span class="p">()</span>
+<span class="n">profile</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">get_profile</span><span class="p">(</span><span class="s2">&quot;https://scholar.google.com/...&quot;</span><span class="p">)</span>
+<span class="c1"># Returns ScholarProfile with publications list</span>
+</pre></div>
+</div>
+<p>Data Extracted:</p>
+<ul class="simple">
+<li><p>Total citations</p></li>
+<li><p>h-index</p></li>
+<li><p>Recent publications (last 5 years)</p></li>
+<li><p>Publication venues</p></li>
+<li><p>Co-author network</p></li>
+</ul>
+</section>
+<section id="professor-homepage-crawler">
+<h2>Professor Homepage Crawler<a class="headerlink" href="#professor-homepage-crawler" title="Link to this heading"></a></h2>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/professor.py</span></code></p>
+<p>Parses individual professor websites for detailed information.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Extract contact information (email, office)</p></li>
+<li><p>Parse research interests and current projects</p></li>
+<li><p>Detect if accepting students (招生状态)</p></li>
+<li><p>Find CV/Resume links</p></li>
+<li><p>Extract education background</p></li>
+</ul>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.professor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProfessorCrawler</span>
+
+<span class="n">crawler</span> <span class="o">=</span> <span class="n">ProfessorCrawler</span><span class="p">()</span>
+<span class="n">info</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">get_info</span><span class="p">(</span><span class="s2">&quot;https://professor.university.edu/~name&quot;</span><span class="p">)</span>
+<span class="c1"># Returns ProfessorInfo object</span>
+</pre></div>
+</div>
+<p>Data Extracted:</p>
+<ul class="simple">
+<li><p>Email address</p></li>
+<li><p>Office location</p></li>
+<li><p>Research interests (bulleted list)</p></li>
+<li><p>Current projects</p></li>
+<li><p>Lab/group website</p></li>
+<li><p>Accepting students status</p></li>
+</ul>
+</section>
+<section id="arxiv-crawler">
+<h2>arXiv Crawler<a class="headerlink" href="#arxiv-crawler" title="Link to this heading"></a></h2>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/arxiv.py</span></code></p>
+<p>Downloads papers from arXiv for LLM analysis.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Search papers by title/author</p></li>
+<li><p>Download PDF and source files</p></li>
+<li><p>Extract abstracts and full text</p></li>
+<li><p>Batch download with progress tracking</p></li>
+</ul>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.arxiv</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArXivCrawler</span>
+
+<span class="n">crawler</span> <span class="o">=</span> <span class="n">ArXivCrawler</span><span class="p">()</span>
+<span class="n">papers</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+    <span class="n">query</span><span class="o">=</span><span class="s2">&quot;author:John Doe&quot;</span><span class="p">,</span>
+    <span class="n">max_results</span><span class="o">=</span><span class="mi">10</span>
+<span class="p">)</span>
+<span class="n">crawler</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">papers</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;./papers&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Data Extracted:</p>
+<ul class="simple">
+<li><p>Paper title</p></li>
+<li><p>Authors</p></li>
+<li><p>Abstract</p></li>
+<li><p>Categories</p></li>
+<li><p>PDF URL</p></li>
+<li><p>arXiv ID</p></li>
+</ul>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>Crawlers respect these settings in <code class="docutils literal notranslate"><span class="pre">config/settings.yaml</span></code>:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">crawlers</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">selenium</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">headless</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">          </span><span class="c1"># Run browser without UI</span>
+<span class="w">    </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w">             </span><span class="c1"># Request timeout (seconds)</span>
+<span class="w">    </span><span class="nt">user_agent</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Mozilla/5.0...&quot;</span>
+
+<span class="w">  </span><span class="nt">rate_limits</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">csrankings</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span><span class="w">         </span><span class="c1"># Seconds between requests</span>
+<span class="w">    </span><span class="nt">scholar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.0</span>
+<span class="w">    </span><span class="nt">professor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+<span class="w">    </span><span class="nt">arxiv</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+
+<span class="w">  </span><span class="nt">cache</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">ttl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">86400</span><span class="w">              </span><span class="c1"># Cache TTL in seconds (1 day)</span>
+</pre></div>
+</div>
+</section>
+<section id="caching">
+<h2>Caching<a class="headerlink" href="#caching" title="Link to this heading"></a></h2>
+<p>All crawler results are cached to avoid redundant requests:</p>
+<ul class="simple">
+<li><p><strong>Cache location</strong>: <code class="docutils literal notranslate"><span class="pre">./cache/crawlers/</span></code></p></li>
+<li><p><strong>Cache key</strong>: URL + parameters hash</p></li>
+<li><p><strong>Invalidation</strong>: TTL-based or manual clear</p></li>
+</ul>
+</section>
+<section id="rate-limiting">
+<h2>Rate Limiting<a class="headerlink" href="#rate-limiting" title="Link to this heading"></a></h2>
+<p>To be respectful to source websites:</p>
+<ul class="simple">
+<li><p>Automatic delays between requests</p></li>
+<li><p>Retry with exponential backoff on failures</p></li>
+<li><p>Respect <code class="docutils literal notranslate"><span class="pre">robots.txt</span></code> where applicable</p></li>
+</ul>
+</section>
+<section id="error-handling">
+<h2>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading"></a></h2>
+<p>Crawlers handle:</p>
+<ul class="simple">
+<li><p>Network timeouts (retry up to 3 times)</p></li>
+<li><p>Changed page layouts (graceful degradation)</p></li>
+<li><p>CAPTCHA/anti-bot measures (pause and alert)</p></li>
+<li><p>Missing data (return partial results)</p></li>
+</ul>
+</section>
+<section id="adding-new-crawlers">
+<h2>Adding New Crawlers<a class="headerlink" href="#adding-new-crawlers" title="Link to this heading"></a></h2>
+<p>To add a new data source:</p>
+<ol class="arabic simple">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
+<li><p>Inherit from <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
+<li><p>Implement <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> method</p></li>
+<li><p>Register in <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code></p></li>
+<li><p>Add tests in <code class="docutils literal notranslate"><span class="pre">tests/crawlers/</span></code></p></li>
+</ol>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCrawler</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DBLPCrawler</span><span class="p">(</span><span class="n">BaseCrawler</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fetch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># Implement crawling logic</span>
+        <span class="k">pass</span>
+</pre></div>
+</div>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a></p></li>
+<li><p><a class="reference internal" href="agents.html"><span class="doc">Agents</span></a></p></li>
+<li><p><a class="reference internal" href="llm.html"><span class="doc">LLM Integration</span></a></p></li>
+<li><p><a class="reference internal" href="api.html"><span class="doc">API Reference</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="architecture.html" class="btn btn-neutral float-left" title="Architecture Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="agents.html" class="btn btn-neutral float-right" title="Agents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, PhD Hunter Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

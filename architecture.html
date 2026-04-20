@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture Overview &mdash; PhD Hunter 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Crawlers" href="crawlers.html" />
+    <link rel="prev" title="Installation Guide" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PhD Hunter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#system-design">System Design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-flow">Data Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents.html">Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="llm.html">LLM Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reports.html">Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="frontend.html">Frontend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PhD Hunter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architecture Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/architecture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="architecture-overview">
+<h1>Architecture Overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h1>
+<p>This document describes the system architecture of PhD Hunter.</p>
+<section id="system-design">
+<h2>System Design<a class="headerlink" href="#system-design" title="Link to this heading"></a></h2>
+<p>PhD Hunter follows a modular, agent-based architecture where specialized agents work together to collect, analyze, and report on potential PhD advisors.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────────────────────────┐
+│                         Frontend (Streamlit)                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│  │   Search    │  │  Results    │  │   Reports   │            │
+│  │    Page     │  │   Page      │  │    Page     │            │
+│  └─────────────┘  └─────────────┘  └─────────────┘            │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │ HTTP/REST
+                 ┌────────────▼────────────┐
+                 │   FastAPI Backend       │
+                 │  ┌──────────────────┐  │
+                 │  │  API Routes      │  │
+                 │  │  - /search       │  │
+                 │  │  - /professors   │  │
+                 │  │  - /reports      │  │
+                 │  └──────────────────┘  │
+                 └────────────┬────────────┘
+                              │
+     ┌────────────────────────┼────────────────────────┐
+     │                        │                        │
+</pre></div>
+</div>
+<p>┌───────▼───────┐    ┌───────────▼──────────┐   ┌────────▼─────────┐
+│  Coordinator  │    │    Researcher        │   │    Reporter      │
+│    Agent      │◄───►│     Agent            │◄──►│     Agent        │
+│               │    │                      │   │                  │
+│ - Orchestrate │    │ - Fetch papers       │   │ - Generate       │
+│ - Manage flow │    │ - Analyze content    │   │   reports        │
+│ - Cache mgmt  │    │ - Score relevance    │   │ - Format output  │
+└───────┬───────┘    └───────────┬──────────┘   └────────┬─────────┘</p>
+<blockquote>
+<div><p>│                        │                        │
+▼                        ▼                        ▼</p>
+</div></blockquote>
+<p>┌──────────────────┐    ┌──────────────────┐   ┌──────────────────┐
+│   Crawlers       │    │   LLM Client     │   │   Templates      │
+│                  │    │                  │   │                  │
+│ - csrankings     │    │ - OpenAI API     │   │ - HTML           │
+│ - google_scholar │    │ - Anthropic API  │   │ - PDF            │
+│ - professor      │    │ - Prompt mgmt    │   │ - Markdown       │
+│ - arxiv          │    │ - Rate limiting  │   │                  │
+└──────────────────┘    └──────────────────┘   └──────────────────┘</p>
+</section>
+<section id="core-components">
+<h2>Core Components<a class="headerlink" href="#core-components" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Crawlers</strong> (crawlers/)</p>
+<p>Web crawlers for gathering data from various sources:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">csrankings.py</span></code>: Scrapes CSRankings.org for university rankings and faculty lists</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scholar.py</span></code>: Fetches publication data from Google Scholar profiles</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">professor.py</span></code>: Parses professor homepages for contact info and research interests</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">arxiv.py</span></code>: Downloads papers from arXiv API</p></li>
+</ul>
+</li>
+<li><p><strong>Agents</strong> (agents/)</p>
+<p>Intelligent agents that process information:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">coordinator.py</span></code>: Orchestrates the entire workflow, manages caches</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">researcher.py</span></code>: Analyzes papers and evaluates professor-student fit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reporter.py</span></code>: Generates final assessment reports</p></li>
+</ul>
+</li>
+<li><p><strong>LLM Module</strong> (llm/)</p>
+<p>LLM integration layer:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">client.py</span></code>: Unified interface for OpenAI and Anthropic APIs</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prompts.py</span></code>: System prompts and templates for different analysis tasks</p></li>
+</ul>
+</li>
+<li><p><strong>Reports</strong> (reports/)</p>
+<p>Report generation and management:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">templates/</span></code>: Jinja2 templates for HTML/PDF reports</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">generator.py</span></code>: Assembles report components</p></li>
+</ul>
+</li>
+<li><p><strong>Utils</strong> (utils/)</p>
+<p>Shared utilities:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">config.py</span></code>: Configuration loading and validation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">logger.py</span></code>: Structured logging setup</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">helpers.py</span></code>: Common helper functions</p></li>
+</ul>
+</li>
+<li><p><strong>Frontend</strong> (frontend/)</p>
+<p>User interface:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">app.py</span></code>: Main Streamlit application</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pages/</span></code>: Additional pages (history, settings, about)</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="data-flow">
+<h2>Data Flow<a class="headerlink" href="#data-flow" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Search Phase</strong></p>
+<p>User inputs target universities/areas → Coordinator queries CSRankings → Crawler extracts professor list → Results cached.</p>
+</li>
+<li><p><strong>Research Phase</strong></p>
+<p>For each professor:</p>
+<ul class="simple">
+<li><p>Fetch Google Scholar profile → Get recent papers</p></li>
+<li><p>Download papers from arXiv (if available)</p></li>
+<li><p>Crawl professor homepage for research interests</p></li>
+<li><p>LLM analyzes papers and extracts themes</p></li>
+<li><p>Compute match score</p></li>
+</ul>
+</li>
+<li><p><strong>Report Phase</strong></p>
+<p>Coordinator aggregates all data → Reporter generates comprehensive report → User reviews results.</p>
+</li>
+</ol>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>See <a class="reference internal" href="installation.html"><span class="doc">Installation Guide</span></a> for setup details. Key configuration files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">config/settings.yaml</span></code>: Main configuration</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>: Python dependencies and project metadata</p></li>
+</ul>
+</section>
+<section id="extensibility">
+<h2>Extensibility<a class="headerlink" href="#extensibility" title="Link to this heading"></a></h2>
+<p>The modular design makes it easy to extend:</p>
+<ul class="simple">
+<li><p>Add new crawlers for additional sources (e.g., DBLP, Semantic Scholar)</p></li>
+<li><p>Integrate different LLM providers</p></li>
+<li><p>Customize report templates</p></li>
+<li><p>Add new analysis agents</p></li>
+</ul>
+</section>
+<section id="development-workflow">
+<h2>Development Workflow<a class="headerlink" href="#development-workflow" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Create a new branch for features</p></li>
+<li><p>Write tests in <code class="docutils literal notranslate"><span class="pre">tests/</span></code></p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">pytest</span></code> to test</p></li>
+<li><p>Update documentation in <code class="docutils literal notranslate"><span class="pre">docs/</span></code></p></li>
+<li><p>Submit PR</p></li>
+</ol>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="crawlers.html"><span class="doc">Crawlers</span></a></p></li>
+<li><p><a class="reference internal" href="agents.html"><span class="doc">Agents</span></a></p></li>
+<li><p><a class="reference internal" href="llm.html"><span class="doc">LLM Integration</span></a></p></li>
+<li><p><a class="reference internal" href="reports.html"><span class="doc">Reports</span></a></p></li>
+<li><p><a class="reference internal" href="frontend.html"><span class="doc">Frontend</span></a></p></li>
+<li><p><a class="reference internal" href="api.html"><span class="doc">API Reference</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="crawlers.html" class="btn btn-neutral float-right" title="Crawlers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, PhD Hunter Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
