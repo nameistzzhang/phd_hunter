@@ -117,6 +117,8 @@ export OPENAI_API_KEY="sk-..."
 
 ## 📖 文档
 
+> 🌐 **在线文档已发布！** 访问 https://nameistzzhang.github.io/phd_hunter/ 查看最新的自动构建文档。
+
 完整文档见 `docs/` 目录或在线浏览：
 
 - [安装指南](docs/source/installation.rst)
