@@ -2,8 +2,9 @@
 
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
+import re
 
 
 class ProfessorStatus(str, Enum):
@@ -59,6 +60,26 @@ class Professor(BaseModel):
     # Metadata
     last_updated: datetime = Field(default_factory=datetime.now)
     source_urls: List[str] = Field(default_factory=list)
+
+    @field_validator('name')
+    @classmethod
+    def clean_name(cls, v: str) -> str:
+        """Clean professor name by removing trailing numeric suffixes.
+
+        CSRankings sometimes appends numbers like '0001' to distinguish
+        professors with same name. This validator strips trailing digits.
+
+        Examples:
+            "Hongsheng Li 0001" -> "Hongsheng Li"
+            "Zhang Wei 12345"   -> "Zhang Wei"
+            "John Doe"          -> "John Doe" (unchanged)
+        """
+        # Remove trailing whitespace first
+        v = v.strip()
+        # Remove trailing numeric suffix (e.g., "Li 0001" -> "Li")
+        # Match: optional spaces + digits at the end of string
+        v = re.sub(r'\s+\d+$', '', v)
+        return v
 
 
 class Paper(BaseModel):
