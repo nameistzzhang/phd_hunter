@@ -107,13 +107,15 @@ class ArxivCrawler(BaseCrawler):
                 return papers
 
             except HTTPError as e:
-                if e.status_code == 429:
+                # arxiv.HTTPError has status_code attribute
+                status = getattr(e, 'status_code', None)
+                if status == 429:
                     wait_time = (attempt + 1) * 10  # 10, 20, 30 seconds
                     logger.warning(f"Rate limited (429). Waiting {wait_time}s before retry...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    logger.error(f"HTTP error {e.status_code}: {e}")
+                    logger.error(f"HTTP error {status}: {e}")
                     break
             except Exception as e:
                 logger.error(f"Error fetching arXiv papers for {professor.name} (attempt {attempt+1}/{self.max_retries}): {e}")
