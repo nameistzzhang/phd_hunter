@@ -269,8 +269,8 @@ def main():
         help="最大处理教授数量 (默认: 全部)"
     )
     fetch_parser.add_argument(
-        "--delay", type=float, default=1.0,
-        help="请求间隔（秒），避免速率限制 (默认: 1.0)"
+        "--delay", type=float, default=3.0,
+        help="请求间隔（秒），避免速率限制 (默认: 3.0)"
     )
 
     # --- stats 命令 ---
