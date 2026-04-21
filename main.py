@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from phd_hunter.crawlers import CSRankingsCrawler, ArxivCrawler
 from phd_hunter.database import Database
 from phd_hunter.utils.logger import get_logger, setup_logger
-from phd_hunter.models import Professor
+from phd_hunter.models import Professor, University
 
 logger = get_logger(__name__)
 
@@ -38,8 +38,7 @@ def cmd_crawl(args):
     )
 
     try:
-        universities, professors = crawler.fetch(
-            universities=args.areas,
+        result = crawler.fetch(
             areas=[args.area] if args.area else None,
             region=args.region,
             include_professors=True,
@@ -47,8 +46,34 @@ def cmd_crawl(args):
             max_professors=args.max_professors,
         )
 
-        print(f"\n✓ 成功爬取 {len(universities)} 所大学")
-        print(f"✓ 成功获取 {len(professors)} 位教授")
+        # Unpack result
+        universities, professors = result
+
+        print(f"\n[OK] 成功爬取 {len(universities)} 所大学")
+        print(f"[OK] 成功获取 {len(professors)} 位教授")
+
+        # Build university lookup dict
+        uni_by_name = {uni.name: uni for uni in universities}
+
+        # Save to database
+        print("\nSaving to database...")
+        saved_count = 0
+        for prof in professors:
+            # Get university info
+            uni = uni_by_name.get(prof.university)
+            if not uni:
+                # Create minimal uni record if not found
+                uni = University(
+                    name=prof.university,
+                    rank=0,
+                    score=0.0,
+                    paper_count=0,
+                    cs_rankings_url="",
+                )
+            db.upsert_professor(prof, uni)
+            saved_count += 1
+
+        print(f"[OK] 已保存 {saved_count} 位教授到数据库")
 
         # Show top universities
         print("\nTop universities:")
@@ -64,7 +89,7 @@ def cmd_crawl(args):
     finally:
         crawler.close()
 
-    print("\n✓ 爬取完成！")
+    print("\n[OK] 爬取完成！")
 
 
 def cmd_fetch_papers(args):
@@ -81,7 +106,7 @@ def cmd_fetch_papers(args):
         professors = db.list_professors(limit=args.max_professors)
 
         if not professors:
-            print("⚠  数据库中没有教授记录。请先运行 'crawl' 命令。")
+            print("[WARN] 数据库中没有教授记录。请先运行 'crawl' 命令。")
             return
 
         print(f"找到 {len(professors)} 位教授，开始获取论文...\n")
@@ -106,14 +131,14 @@ def cmd_fetch_papers(args):
             papers = arxiv_crawler.fetch(prof, max_papers=args.max_papers)
 
             if papers:
-                print(f"    ✓ 找到 {len(papers)} 篇论文")
+                print(f"    [OK] 找到 {len(papers)} 篇论文")
                 total_papers += len(papers)
                 success_count += 1
 
                 # Save papers to database
                 for paper in papers:
                     paper_data = {
-                        'arxiv_id': paper.arxiv_id,
+                        's2_paper_id': paper.arxiv_id,  # Use arxiv_id as paper identifier
                         'title': paper.title,
                         'abstract': paper.abstract,
                         'year': paper.year,
@@ -123,14 +148,14 @@ def cmd_fetch_papers(args):
                     }
                     db.upsert_paper(prof_id, paper_data)
             else:
-                print(f"    ⚠  未找到论文")
+                print(f"    [WARN] 未找到论文")
 
             # Progress separator
             if i % 10 == 0:
                 print(f"\n    Progress: {i}/{len(professors)} professors processed\n")
 
         print("\n" + "=" * 70)
-        print(f"✓ 完成！成功获取 {total_papers} 篇论文（{success_count}/{len(professors)} 位教授）")
+        print(f"[OK] 完成！成功获取 {total_papers} 篇论文（{success_count}/{len(professors)} 位教授）")
         print("=" * 70)
 
     finally:
@@ -218,7 +243,7 @@ def main():
         help="每所大学最大教授数量 (默认: 5)"
     )
     crawl_parser.add_argument(
-        "--no-headless", action="store_true",
+        "--no-headless", dest="headless", action="store_false", default=True,
         help="显示浏览器窗口（默认无头模式）"
     )
     crawl_parser.add_argument(
@@ -283,7 +308,7 @@ def main():
         else:
             parser.print_help()
     except KeyboardInterrupt:
-        print("\n\n⚠  操作被用户中断")
+        print("\n\n[WARN] 操作被用户中断")
         sys.exit(130)
     except Exception as e:
         logger.error(f"命令执行失败: {e}")

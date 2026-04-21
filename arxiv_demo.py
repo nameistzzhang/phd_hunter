@@ -74,7 +74,7 @@ def main():
         else:
             print("  No papers found!")
 
-        time.sleep(1)  # Be respectful with rate limiting
+        time.sleep(3)  # Be respectful with rate limiting (3s between authors)
 
     print("\n" + "=" * 70)
     print("Demo complete!")
