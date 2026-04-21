@@ -1,8 +1,10 @@
 """arXiv crawler - fetches papers by author from arXiv."""
 
+import os
 import time
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from pathlib import Path
 import arxiv
 from arxiv import HTTPError
 
@@ -18,7 +20,7 @@ class ArxivCrawler(BaseCrawler):
 
     def __init__(
         self,
-        delay: float = 3.0,
+        delay: float = 10.0,
         max_retries: int = 3,
         cache_enabled: bool = True,
         cache_ttl: int = 86400,
@@ -40,17 +42,21 @@ class ArxivCrawler(BaseCrawler):
         self,
         professor: Professor,
         max_papers: int = 10,
+        download: bool = False,
+        pdf_dir: Optional[str] = None,
     ) -> List[Paper]:
         """Fetch papers by author from arXiv.
 
         Args:
             professor: Professor object with name to search
             max_papers: Maximum number of papers to return
+            download: If True, download PDFs to pdf_dir
+            pdf_dir: Directory to save PDFs (default: "papers")
 
         Returns:
-            List of Paper objects
+            List of Paper objects (with local_pdf_path if downloaded)
         """
-        cache_key = f"arxiv_{professor.name}_{max_papers}"
+        cache_key = f"arxiv_{professor.name}_{max_papers}_{download}"
         cached = self.get_cached(cache_key)
         if cached:
             logger.info(f"Using cached arXiv results for {professor.name}")
@@ -60,6 +66,16 @@ class ArxivCrawler(BaseCrawler):
 
         # Build arXiv query: author search
         query = f'au:"{professor.name}"'
+
+        # Prepare PDF directory if downloading
+        if download:
+            pdf_base = Path(pdf_dir or "papers")
+            # Sanitize professor name for directory name
+            safe_name = "".join(c for c in professor.name if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_name = safe_name.replace(' ', '_')
+            prof_pdf_dir = pdf_base / safe_name
+            prof_pdf_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"PDFs will be saved to: {prof_pdf_dir}")
 
         for attempt in range(self.max_retries):
             try:
@@ -71,7 +87,7 @@ class ArxivCrawler(BaseCrawler):
 
                 papers = []
                 for result in search.results():
-                    # Extract arXiv ID from entry_id (format: http://arxiv.org/abs/XXXX.XXXXX)
+                    # Extract arXiv ID from entry_id
                     arxiv_id = result.entry_id.split('/')[-1]
 
                     # Build authors list
@@ -82,6 +98,32 @@ class ArxivCrawler(BaseCrawler):
                     year = pub_date.year
                     month = pub_date.month
 
+                    # Download PDF if requested
+                    local_pdf_path = None
+                    if download:
+                        try:
+                            # Create filename: {arxiv_id}.pdf or {arxiv_id}_{sanitized_title}.pdf
+                            safe_title = "".join(c for c in result.title[:80] if c.isalnum() or c in (' ', '-', '_', '.')).strip()
+                            safe_title = safe_title.replace(' ', '_')
+                            filename = f"{arxiv_id}_{safe_title}.pdf"
+                            # Truncate if too long
+                            if len(filename) > 200:
+                                filename = f"{arxiv_id}.pdf"
+
+                            pdf_path = prof_pdf_dir / filename
+
+                            # Download if not already exists
+                            if not pdf_path.exists():
+                                logger.debug(f"  Downloading PDF: {filename}")
+                                result.download_pdf(dirpath=str(prof_pdf_dir), filename=filename)
+                            else:
+                                logger.debug(f"  PDF already exists: {filename}")
+
+                            local_pdf_path = str(pdf_path.relative_to(pdf_base))
+                        except Exception as e:
+                            logger.warning(f"  Failed to download PDF for {arxiv_id}: {e}")
+                            local_pdf_path = None
+
                     # Create Paper object
                     paper = Paper(
                         arxiv_id=arxiv_id,
@@ -89,10 +131,12 @@ class ArxivCrawler(BaseCrawler):
                         authors=authors,
                         abstract=result.summary,
                         year=year,
+                        month=month,
                         venue=None,  # arXiv doesn't have venue info
                         citations=0,  # arXiv doesn't provide citation counts
                         url=result.entry_id,
                         pdf_url=result.pdf_url,
+                        pdf_path=local_pdf_path,
                     )
                     papers.append(paper)
 
@@ -107,8 +151,8 @@ class ArxivCrawler(BaseCrawler):
                 return papers
 
             except HTTPError as e:
-                # arxiv.HTTPError has status_code attribute
-                status = getattr(e, 'status_code', None)
+                # arxiv.HTTPError has 'status' attribute (not 'status_code')
+                status = getattr(e, 'status', None)
                 if status == 429:
                     wait_time = (attempt + 1) * 10  # 10, 20, 30 seconds
                     logger.warning(f"Rate limited (429). Waiting {wait_time}s before retry...")

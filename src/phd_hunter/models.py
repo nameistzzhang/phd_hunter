@@ -70,9 +70,11 @@ class Paper(BaseModel):
     abstract: str
     venue: Optional[str] = None
     year: int
+    month: Optional[int] = None  # Publication month (1-12)
     citations: int = 0
     url: Optional[str] = None
-    pdf_path: Optional[str] = None
+    pdf_url: Optional[str] = None  # URL to PDF (e.g., arXiv pdf URL)
+    pdf_path: Optional[str] = None  # Local file path if downloaded
 
     # LLM analysis results
     themes: List[str] = Field(default_factory=list)

@@ -127,8 +127,13 @@ def cmd_fetch_papers(args):
                 university=prof_dict['university_name'],
             )
 
-            # Fetch papers from arXiv
-            papers = arxiv_crawler.fetch(prof, max_papers=args.max_papers)
+            # Fetch papers from arXiv (with optional PDF download)
+            papers = arxiv_crawler.fetch(
+                prof,
+                max_papers=args.max_papers,
+                download=args.download_pdfs,
+                pdf_dir=args.pdf_dir,
+            )
 
             if papers:
                 print(f"    [OK] 找到 {len(papers)} 篇论文")
@@ -138,15 +143,21 @@ def cmd_fetch_papers(args):
                 # Save papers to database
                 for paper in papers:
                     paper_data = {
-                        's2_paper_id': paper.arxiv_id,  # Use arxiv_id as paper identifier
+                        's2_paper_id': paper.arxiv_id,
                         'title': paper.title,
                         'abstract': paper.abstract,
                         'year': paper.year,
                         'venue': paper.venue,
                         'url': paper.url,
-                        'openaccess_pdf': paper.pdf_url if hasattr(paper, 'pdf_url') else None,
+                        'openaccess_pdf': paper.pdf_url,
+                        'local_pdf_path': paper.pdf_path,
                     }
                     db.upsert_paper(prof_id, paper_data)
+
+                # Show PDF download status
+                if args.download_pdfs:
+                    pdf_count = sum(1 for p in papers if p.pdf_path)
+                    print(f"    [OK] 下载了 {pdf_count}/{len(papers)} 篇 PDF")
             else:
                 print(f"    [WARN] 未找到论文")
 
@@ -269,8 +280,16 @@ def main():
         help="最大处理教授数量 (默认: 全部)"
     )
     fetch_parser.add_argument(
-        "--delay", type=float, default=3.0,
-        help="请求间隔（秒），避免速率限制 (默认: 3.0)"
+        "--delay", type=float, default=10.0,
+        help="请求间隔（秒），避免速率限制 (默认: 10.0)"
+    )
+    fetch_parser.add_argument(
+        "--download-pdfs", action="store_true",
+        help="下载论文 PDF 到本地文件夹"
+    )
+    fetch_parser.add_argument(
+        "--pdf-dir", default="papers",
+        help="PDF 保存目录 (默认: papers)"
     )
 
     # --- stats 命令 ---
