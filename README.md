@@ -11,9 +11,9 @@
 - 📊 **CSRankings 爬取** - 自动获取各大学 CS 领域教授排名和名单
 - 📝 **arXiv 论文获取** - 按作者搜索并保存最新论文元数据
 - 💾 **SQLite 存储** - 所有数据本地持久化
-- 🔧 **CLI 命令行** - 简单易用的命令行界面
-
-> **注意**：当前版本为简化版，移除了 LLM 分析、Web 界面等复杂功能，专注于核心数据收集。
+- 🌐 **Web 可视化界面** - 基于 Flask 的交互式教授浏览和筛选
+- 🏷️ **优先级标记** - 为每位教授标记优先级（冲刺/匹配/稳妥/保底/不考虑）
+- 🔍 **多维筛选** - 按优先级、研究领域、大学筛选教授列表
 
 ## 🚀 快速开始
 
@@ -39,6 +39,8 @@ pip install -e .
 
 ### 使用
 
+**命令行模式：**
+
 ```bash
 # 1. 爬取教授数据
 python main.py crawl --area ai --region world --max-professors 5
@@ -53,27 +55,49 @@ python main.py stats
 python main.py list --limit 20
 ```
 
+**Web 界面模式：**
+
+```bash
+# 启动 Flask Web 服务器（默认 http://localhost:5000）
+cd src/phd_hunter/frontend
+python run_server.py
+```
+
+然后在浏览器中打开 http://localhost:5000，即可：
+- 浏览所有教授卡片（显示匹配分数、论文数、研究领域）
+- 使用顶部筛选栏按优先级 / 领域 / 大学筛选
+- 点击教授卡片查看详细信息（包含论文列表）
+- 通过下拉菜单修改教授优先级（自动保存到数据库）
+
 ## 📁 项目结构
 
 ```
 phd_hunter/
-├── main.py                    # 命令行入口 (根目录)
-├── arxiv_demo.py              # arXiv API 演示脚本
-├── pyproject.toml             # 项目配置
-├── README.md                  # 项目说明
-├── src/phd_hunter/
-│   ├── __init__.py           # 包初始化
-│   ├── models.py             # Pydantic 数据模型
-│   ├── database.py           # SQLite 数据库操作
-│   ├── crawlers/
-│   │   ├── __init__.py       # 导出 ArxivCrawler, CSRankingsCrawler
-│   │   ├── base.py           # 爬虫基类 (缓存支持)
-│   │   ├── csrankings.py     # CSRankings 爬虫 (Selenium)
-│   │   └── arxiv_crawler.py  # arXiv 爬虫 (arxiv API)
-│   └── utils/
-│       ├── logger.py         # 日志配置
-│       └── helpers.py        # 工具函数
-└── docs/                     # Sphinx 文档 (可选)
+├── main.py                       # CLI 入口 (根目录)
+├── arxiv_demo.py                 # arXiv API 演示脚本
+├── pyproject.toml                # 项目配置
+├── README.md                     # 项目说明
+├── docs/                         # Sphinx 文档
+└── src/phd_hunter/
+    ├── __init__.py              # 包初始化
+    ├── models.py                # Pydantic 数据模型
+    ├── database.py              # SQLite 数据库操作
+    ├── crawlers/
+    │   ├── __init__.py          # 导出 ArxivCrawler, CSRankingsCrawler
+    │   ├── base.py              # 爬虫基类 (缓存支持)
+    │   ├── csrankings.py        # CSRankings 爬虫 (Selenium)
+    │   └── arxiv_crawler.py     # arXiv 爬虫 (arxiv API)
+    ├── utils/
+    │   ├── logger.py            # 日志配置
+    │   └── helpers.py           # 工具函数
+    └── frontend/                # Web 前端界面
+        ├── app.py               # Flask API 服务器
+        ├── index.html           # 主页面
+        ├── static/
+        │   ├── styles.css       # 样式表
+        │   ├── app.js           # 前端逻辑
+        │   └── setting_icon.svg # 设置图标
+        └── templates/           # HTML 模板
 ```
 
 ## 🗄️ 数据库结构
@@ -81,9 +105,9 @@ phd_hunter/
 项目使用 SQLite 存储数据，包含两张表：
 
 ### professors 表
-- 教授基本信息（姓名、大学、院系、邮箱等）
-- 研究方向和来源链接
-- 论文统计和匹配分数
+- 教授基本信息（姓名、大学、院系、邮箱）
+- 研究方向、个人主页、优先级（-1~3）
+- 论文统计、匹配分数等指标
 
 ### papers 表
 - 论文元数据（标题、作者、摘要、年份）
@@ -142,6 +166,34 @@ python main.py list --limit 20 --min-score 50
 - `--limit`：显示数量限制
 - `--min-score`：最低匹配分数过滤
 
+## 🌐 Web 界面
+
+项目包含一个基于 Flask 的 Web 可视化界面，用于浏览和管理教授数据。
+
+### 启动 Web 服务器
+
+```bash
+# 进入 frontend 目录
+cd src/phd_hunter/frontend
+
+# 启动 Flask 服务器（默认 http://localhost:5000）
+python run_server.py
+```
+
+### 使用 Web 界面
+
+1. 在浏览器中打开 http://localhost:5000
+2. 左侧面板显示所有教授卡片，包含：
+   - 匹配分数、论文数、链接数
+   - 研究领域标签（最多 3 个）
+   - 优先级颜色条（右侧边缘）
+3. 使用顶部筛选栏：
+   - **Priority**：按优先级筛选
+   - **Research Area**：按研究领域筛选
+   - **University**：按大学筛选
+4. 点击教授卡片查看详细信息（论文列表、联系方式等）
+5. 使用卡片上的下拉菜单修改教授优先级（自动保存）
+
 ## ⚠️ 已知限制
 
 1. **arXiv 覆盖度**：并非所有教授都在 arXiv 发表论文
@@ -170,7 +222,9 @@ python arxiv_demo.py
 
 ## 📖 文档
 
-完整文档见 `docs/` 目录或在线浏览：
+> 🌐 **在线文档已发布！** 访问 https://nameistzzhang.github.io/phd_hunter/ 查看最新的自动构建文档。
+
+完整文档见 `docs/` 目录或本地浏览：
 - [安装指南](docs/source/installation.rst)
 - [系统架构](docs/source/architecture.rst)
 - [爬虫模块](docs/source/crawlers.rst)

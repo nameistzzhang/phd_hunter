@@ -41,23 +41,18 @@ logs/
 *.log
 config/settings.yaml
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# Environment variables
-.env
-.env.local
-
-# Chrome driver
-chromedriver*
-Drivers/
+# Frontend static data (dynamically served)
+src/phd_hunter/frontend/static/data/
 
 # Temporary files
 *.tmp
 temp/
+debug_output/
 
 # Streamlit
 .streamlit/

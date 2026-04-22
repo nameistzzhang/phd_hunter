@@ -60,6 +60,7 @@ class Professor(BaseModel):
     # Metadata
     last_updated: datetime = Field(default_factory=datetime.now)
     source_urls: List[str] = Field(default_factory=list)
+    priority: int = -1  # -1: not considered, 0: top-tier (reach), 1: good match, 2: safe, 3: backup
 
     @field_validator('name')
     @classmethod

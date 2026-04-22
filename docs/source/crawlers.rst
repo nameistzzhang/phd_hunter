@@ -1,7 +1,7 @@
 Crawlers
 ========
 
-本模块负责从学术来源获取数据。
+本模块负责从学术来源获取数据。此外，项目还包含一个 Web 前端界面用于数据展示和交互。
 
 概述
 ----
@@ -12,6 +12,10 @@ Crawlers
 * 从 arXiv 搜索教授发表的论文
 
 所有爬虫遵循速率限制并包含重试逻辑。
+
+.. note::
+   Web 前端部分见 :doc:`architecture` 中的"Web 前端界面"章节，
+   或直接查看 ``src/phd_hunter/frontend/`` 目录下的 Flask 应用代码。
 
 CSRankings Crawler
 ------------------

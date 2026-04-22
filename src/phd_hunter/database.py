@@ -52,6 +52,7 @@ class Database:
                 email TEXT,
                 research_interests TEXT,  -- JSON array
                 status TEXT DEFAULT 'unknown',
+                priority INTEGER DEFAULT -1,  -- -1: not considered, 0-3: priority tiers
                 total_papers INTEGER DEFAULT 0,
                 recent_papers INTEGER DEFAULT 0,
                 papers_per_year REAL DEFAULT 0.0,
@@ -96,7 +97,46 @@ class Database:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_papers_year ON papers(year DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_papers_s2_id ON papers(s2_paper_id)")
 
+        # Apply migrations for existing databases
+        self._migrate_tables()
+
         self.conn.commit()
+
+    def _migrate_tables(self) -> None:
+        """Apply migrations to existing tables."""
+        cursor = self.conn.cursor()
+        # Check if priority column exists in professors table
+        cursor.execute("PRAGMA table_info(professors)")
+        columns = [row["name"] for row in cursor.fetchall()]
+        if "priority" not in columns:
+            cursor.execute("ALTER TABLE professors ADD COLUMN priority INTEGER DEFAULT -1")
+            self.conn.commit()
+            print("[Migration] Added 'priority' column to professors table")
+
+    def update_professor_priority(self, professor_id: int, priority: int) -> bool:
+        """Update priority for a professor.
+
+        Args:
+            professor_id: Professor database ID
+            priority: Priority value (-1, 0, 1, 2, 3)
+
+        Returns:
+            True if updated, False if professor not found
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "UPDATE professors SET priority = ? WHERE id = ?",
+            (priority, professor_id)
+        )
+        self.conn.commit()
+        return cursor.rowcount > 0
+
+    def get_professor_priority(self, professor_id: int) -> Optional[int]:
+        """Get current priority of a professor."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT priority FROM professors WHERE id = ?", (professor_id,))
+        row = cursor.fetchone()
+        return row["priority"] if row else None
 
     def close(self):
         """Close database connection."""
@@ -126,10 +166,10 @@ class Database:
                 INSERT INTO professors
                 (name, university_name, university_rank, university_score,
                  university_paper_count, university_url, department, homepage,
-                 scholar_url, email, research_interests, status, total_papers,
-                 recent_papers, papers_per_year, match_score, research_alignment,
-                 activity_score, last_updated, source_urls)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 scholar_url, email, research_interests, status, priority,
+                 total_papers, recent_papers, papers_per_year, match_score,
+                 research_alignment, activity_score, last_updated, source_urls)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 prof.name,
                 university.name,
@@ -143,6 +183,7 @@ class Database:
                 prof.email,
                 research_interests_json,
                 prof.status.value if hasattr(prof.status, 'value') else str(prof.status),
+                prof.priority,
                 prof.total_papers,
                 prof.recent_papers,
                 prof.papers_per_year,
@@ -159,10 +200,10 @@ class Database:
                 UPDATE professors
                 SET university_rank = ?, university_score = ?, university_paper_count = ?,
                     university_url = ?, department = ?, homepage = ?, scholar_url = ?,
-                    email = ?, research_interests = ?, status = ?, total_papers = ?,
-                    recent_papers = ?, papers_per_year = ?, match_score = ?,
-                    research_alignment = ?, activity_score = ?, last_updated = ?,
-                    source_urls = ?
+                    email = ?, research_interests = ?, status = ?, priority = ?,
+                    total_papers = ?, recent_papers = ?, papers_per_year = ?,
+                    match_score = ?, research_alignment = ?, activity_score = ?,
+                    last_updated = ?, source_urls = ?
                 WHERE university_name = ? AND name = ?
             """, (
                 university.rank,
@@ -175,6 +216,7 @@ class Database:
                 prof.email,
                 research_interests_json,
                 prof.status.value if hasattr(prof.status, 'value') else str(prof.status),
+                prof.priority,
                 prof.total_papers,
                 prof.recent_papers,
                 prof.papers_per_year,

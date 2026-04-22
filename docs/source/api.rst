@@ -1,7 +1,58 @@
 API Reference
 =============
 
-当前版本使用命令行接口 (CLI) 作为主要 API。
+本项目提供两种 API：命令行接口 (CLI) 和 Web REST API (Flask)。
+
+Web REST API
+------------
+
+**基础路径**: ``http://localhost:5000``
+
+Web 前端通过以下 JSON API 与后端交互：
+
+.. list-table:: API 端点
+   :header-rows: 1
+
+   * - 方法
+     - 路径
+     - 说明
+   * - ``GET``
+     - ``/``
+     - 服务主页（返回 ``index.html``）
+   * - ``GET``
+     - ``/api/stats``
+     - 获取统计信息（教授数、论文数、平均分等）
+   * - ``GET``
+     - ``/api/professors``
+     - 获取所有教授列表
+   * - ``POST``
+     - ``/api/professor/<int:id>/priority``
+     - 更新教授的优先级
+
+详细示例：
+
+.. code-block:: python
+
+   import requests
+
+   # 获取统计信息
+   stats = requests.get('http://localhost:5000/api/stats').json()
+   print(f"教授数: {stats['professors']}, 论文数: {stats['papers']}")
+
+   # 获取教授列表
+   data = requests.get('http://localhost:5000/api/professors').json()
+   professors = data['professors']
+
+   # 更新优先级
+   response = requests.post(
+       'http://localhost:5000/api/professor/1/priority',
+       json={'priority': 1}
+   )
+   # 返回: {"success": true, "priority": 1}
+
+.. note::
+   Web 服务器入口位于 ``src/phd_hunter/frontend/app.py``。
+   静态文件（HTML/CSS/JS）托管在 ``src/phd_hunter/frontend/static/``。
 
 命令行参考
 ----------

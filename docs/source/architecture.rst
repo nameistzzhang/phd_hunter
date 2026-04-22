@@ -6,27 +6,49 @@ Architecture Overview
 系统设计
 --------
 
-PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库和命令行界面三个部分。
+PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库、Web 界面和命令行接口四个部分。
 
 .. code-block:: text
 
-   ┌─────────────────────────────────────────────┐
-   │         Command Line Interface              │
-   │  (main.py: crawl / fetch-papers / stats)    │
-   └─────────────────┬───────────────────────────┘
-                     │
-       ┌─────────────┼─────────────┐
-       ▼             ▼             ▼
-   ┌────────┐   ┌──────────┐   ┌─────────┐
-   │ CSRank │   │  Arxiv  │   │  SQLite│
-   │  ings  │   │ Crawler │   │ Database│
-   │Crawler │   │          │   │         │
-   └────────┘   └──────────┘   └─────────┘
+   ┌────────────────────────────────────────────────────┐
+   │    Web Frontend (Flask + HTML/CSS/JS)              │
+   │    • Professor cards with priority & filters       │
+   │    • Real-time filtering & sorting                 │
+   │    • Modal detail view with papers                 │
+   └────────────────────┬───────────────────────────────┘
+                        │ REST API
+       ┌────────────────┼────────────────┐
+       ▼                ▼                ▼
+   ┌─────────┐    ┌──────────┐    ┌─────────┐
+   │ CLI     │    │  Arxiv  │    │ SQLite  │
+   │(main.py)│    │ Crawler │    │Database │
+   └─────────┘    └──────────┘    └─────────┘
+         │
+         ▼
+   ┌─────────────┐
+   │ CSRankings  │
+   │   Crawler   │
+   └─────────────┘
 
 核心组件
 --------
 
-1. **CLI 入口** (main.py)
+1. **Web 前端界面** (frontend/)
+
+   Flask + 原生 HTML/CSS/JavaScript 构建的可视化界面：
+
+   - ``app.py``: Flask API 服务器，提供 JSON 数据接口
+   - ``index.html``: 主页面，包含导航栏、筛选栏、教授列表和详情弹窗
+   - ``styles.css``: 黑白简约风格样式表
+   - ``app.js``: 前端逻辑（数据加载、筛选、优先级更新、弹窗显示）
+
+   主要功能：
+   - 教授卡片展示（分数、论文数、研究领域、优先级色条）
+   - 三维筛选（Priority / Research Area / University）
+   - 优先级下拉菜单修改（实时保存到数据库）
+   - 教授详情弹窗（基本信息、指标、论文列表）
+
+2. **CLI 入口** (main.py)
 
    命令行主程序，提供三个子命令：
 
@@ -90,7 +112,20 @@ PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库和命
             → Database.upsert_paper()
          → SQLite 保存
 
-3. **查询阶段**
+3. **Web 界面查询阶段**
+
+   .. code-block::
+
+      Browser → Flask app.py (GET /api/professors)
+         → Database.list_professors()
+         → JSON 返回教授列表
+         → JavaScript 渲染卡片 + 筛选
+
+      Browser → Flask app.py (POST /api/professor/<id>/priority)
+         → Database.update_professor_priority()
+         → 更新数据库并返回最新列表
+
+4. **命令行查询阶段**
 
    .. code-block::
 
