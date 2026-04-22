@@ -90,25 +90,46 @@
 <p>本文档描述 PhD Hunter 的系统架构。</p>
 <section id="id1">
 <h2>系统设计<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库和命令行界面三个部分。</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>┌─────────────────────────────────────────────┐
-│         Command Line Interface              │
-│  (main.py: crawl / fetch-papers / stats)    │
-└─────────────────┬───────────────────────────┘
-                  │
-    ┌─────────────┼─────────────┐
-    ▼             ▼             ▼
-┌────────┐   ┌──────────┐   ┌─────────┐
-│ CSRank │   │  Arxiv  │   │  SQLite│
-│  ings  │   │ Crawler │   │ Database│
-│Crawler │   │          │   │         │
-└────────┘   └──────────┘   └─────────┘
+<p>PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库、Web 界面和命令行接口四个部分。</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>┌────────────────────────────────────────────────────┐
+│    Web Frontend (Flask + HTML/CSS/JS)              │
+│    • Professor cards with priority &amp; filters       │
+│    • Real-time filtering &amp; sorting                 │
+│    • Modal detail view with papers                 │
+└────────────────────┬───────────────────────────────┘
+                     │ REST API
+    ┌────────────────┼────────────────┐
+    ▼                ▼                ▼
+┌─────────┐    ┌──────────┐    ┌─────────┐
+│ CLI     │    │  Arxiv  │    │ SQLite  │
+│(main.py)│    │ Crawler │    │Database │
+└─────────┘    └──────────┘    └─────────┘
+      │
+      ▼
+┌─────────────┐
+│ CSRankings  │
+│   Crawler   │
+└─────────────┘
 </pre></div>
 </div>
 </section>
 <section id="id2">
 <h2>核心组件<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <ol class="arabic">
+<li><p><strong>Web 前端界面</strong> (frontend/)</p>
+<p>Flask + 原生 HTML/CSS/JavaScript 构建的可视化界面：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">app.py</span></code>: Flask API 服务器，提供 JSON 数据接口</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index.html</span></code>: 主页面，包含导航栏、筛选栏、教授列表和详情弹窗</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">styles.css</span></code>: 黑白简约风格样式表</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">app.js</span></code>: 前端逻辑（数据加载、筛选、优先级更新、弹窗显示）</p></li>
+</ul>
+<p>主要功能：
+- 教授卡片展示（分数、论文数、研究领域、优先级色条）
+- 三维筛选（Priority / Research Area / University）
+- 优先级下拉菜单修改（实时保存到数据库）
+- 教授详情弹窗（基本信息、指标、论文列表）</p>
+</li>
 <li><p><strong>CLI 入口</strong> (main.py)</p>
 <p>命令行主程序，提供三个子命令：</p>
 <ul class="simple">
@@ -117,6 +138,8 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: 查看数据库内容</p></li>
 </ul>
 </li>
+</ol>
+<ol class="arabic" start="2">
 <li><p><strong>爬虫模块</strong> (crawlers/)</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">CSRankingsCrawler</span></code>: 使用 Selenium 爬取 CSRankings.org 的大学排名和教授列表</p></li>
@@ -173,7 +196,19 @@
 </pre></div>
 </div>
 </li>
-<li><p><strong>查询阶段</strong></p>
+<li><p><strong>Web 界面查询阶段</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Browser → Flask app.py (GET /api/professors)
+   → Database.list_professors()
+   → JSON 返回教授列表
+   → JavaScript 渲染卡片 + 筛选
+
+Browser → Flask app.py (POST /api/professor/&lt;id&gt;/priority)
+   → Database.update_professor_priority()
+   → 更新数据库并返回最新列表
+</pre></div>
+</div>
+</li>
+<li><p><strong>命令行查询阶段</strong></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User → main.py stats / list
    → Database.get_stats() / list_professors()
    → 格式化输出

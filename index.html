@@ -84,26 +84,37 @@
 <li><p><strong>CSRankings 数据爬取</strong>: 自动爬取 CSRankings 网站获取院校和导师信息</p></li>
 <li><p><strong>arXiv 论文获取</strong>: 按作者搜索并保存最新论文元数据</p></li>
 <li><p><strong>SQLite 存储</strong>: 所有数据本地持久化</p></li>
-<li><p><strong>CLI 命令行</strong>: 简单易用的命令行界面</p></li>
+<li><p><strong>Web 可视化界面</strong>: 基于 Flask 的交互式教授浏览、筛选和管理</p></li>
+<li><p><strong>优先级标记</strong>: 为每位教授标记优先级（冲刺/匹配/稳妥/保底/不考虑）</p></li>
+<li><p><strong>多维筛选</strong>: 按优先级、研究领域、大学筛选教授列表</p></li>
 </ul>
 </section>
 <section id="id2">
 <h2>项目架构<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>phd_hunter/
-├── main.py                    # CLI 入口 (根目录)
-├── arxiv_demo.py              # arXiv API 演示
-├── src/phd_hunter/
-│   ├── models.py              # Pydantic 数据模型
-│   ├── database.py            # SQLite 数据库操作
-│   ├── crawlers/
-│   │   ├── base.py            # 爬虫基类 (缓存支持)
-│   │   ├── csrankings.py      # CSRankings 爬虫
-│   │   └── arxiv_crawler.py   # arXiv 爬虫
-│   └── utils/
-│       ├── logger.py          # 日志配置
-│       └── helpers.py         # 工具函数
-├── pyproject.toml             # 项目配置
-└── README.md                  # 项目说明
+├── main.py                       # CLI 入口 (根目录)
+├── arxiv_demo.py                 # arXiv API 演示
+├── pyproject.toml                # 项目配置
+├── README.md                     # 项目说明
+├── docs/                         # Sphinx 文档
+└── src/phd_hunter/
+    ├── models.py                 # Pydantic 数据模型
+    ├── database.py               # SQLite 数据库操作
+    ├── crawlers/
+    │   ├── base.py               # 爬虫基类 (缓存支持)
+    │   ├── csrankings.py         # CSRankings 爬虫
+    │   └── arxiv_crawler.py      # arXiv 爬虫
+    ├── utils/
+    │   ├── logger.py             # 日志配置
+    │   └── helpers.py            # 工具函数
+    └── frontend/                 # Web 前端界面
+        ├── app.py                # Flask API 服务器
+        ├── index.html            # 主页面
+        ├── static/
+        │   ├── styles.css        # 样式表
+        │   ├── app.js            # 前端逻辑
+        │   └── assets/           # 静态资源 (图标等)
+        └── templates/            # HTML 模板
 </pre></div>
 </div>
 </section>
@@ -139,6 +150,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </div>
 </li>
 <li><p><strong>运行应用</strong></p>
+<p>命令行模式：</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 爬取教授数据</span>
 python<span class="w"> </span>main.py<span class="w"> </span>crawl<span class="w"> </span>--area<span class="w"> </span>ai<span class="w"> </span>--region<span class="w"> </span>world<span class="w"> </span>--max-professors<span class="w"> </span><span class="m">5</span>
 
@@ -147,6 +159,14 @@ python<span class="w"> </span>main.py<span class="w"> </span>fetch-papers<span c
 
 <span class="c1"># 查看统计</span>
 python<span class="w"> </span>main.py<span class="w"> </span>stats
+</pre></div>
+</div>
+<p>Web 界面模式：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 启动 Flask 服务器</span>
+<span class="nb">cd</span><span class="w"> </span>src/phd_hunter/frontend
+python<span class="w"> </span>run_server.py
+
+<span class="c1"># 然后在浏览器打开 http://localhost:5000</span>
 </pre></div>
 </div>
 </li>
@@ -188,6 +208,7 @@ python<span class="w"> </span>main.py<span class="w"> </span>stats
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#web-rest-api">Web REST API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#id1">命令行参考</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#api">数据库 API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#id4">模型参考</a></li>

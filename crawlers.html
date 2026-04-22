@@ -89,7 +89,7 @@
              
   <section id="crawlers">
 <h1>Crawlers<a class="headerlink" href="#crawlers" title="Link to this heading"></a></h1>
-<p>本模块负责从学术来源获取数据。</p>
+<p>本模块负责从学术来源获取数据。此外，项目还包含一个 Web 前端界面用于数据展示和交互。</p>
 <section id="id1">
 <h2>概述<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>爬虫负责从不同来源获取数据：</p>
@@ -98,6 +98,11 @@
 <li><p>从 arXiv 搜索教授发表的论文</p></li>
 </ul>
 <p>所有爬虫遵循速率限制并包含重试逻辑。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Web 前端部分见 <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a> 中的”Web 前端界面”章节，
+或直接查看 <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/</span></code> 目录下的 Flask 应用代码。</p>
+</div>
 </section>
 <section id="csrankings-crawler">
 <h2>CSRankings Crawler<a class="headerlink" href="#csrankings-crawler" title="Link to this heading"></a></h2>

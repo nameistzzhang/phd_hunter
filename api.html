@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#web-rest-api">Web REST API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id1">命令行参考</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id2">命令</a></li>
 </ul>
@@ -103,7 +104,63 @@
              
   <section id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
-<p>当前版本使用命令行接口 (CLI) 作为主要 API。</p>
+<p>本项目提供两种 API：命令行接口 (CLI) 和 Web REST API (Flask)。</p>
+<section id="web-rest-api">
+<h2>Web REST API<a class="headerlink" href="#web-rest-api" title="Link to this heading"></a></h2>
+<p><strong>基础路径</strong>: <code class="docutils literal notranslate"><span class="pre">http://localhost:5000</span></code></p>
+<p>Web 前端通过以下 JSON API 与后端交互：</p>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">API 端点</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>方法</p></th>
+<th class="head"><p>路径</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/</span></code></p></td>
+<td><p>服务主页（返回 <code class="docutils literal notranslate"><span class="pre">index.html</span></code>）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/stats</span></code></p></td>
+<td><p>获取统计信息（教授数、论文数、平均分等）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/professors</span></code></p></td>
+<td><p>获取所有教授列表</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/professor/&lt;int:id&gt;/priority</span></code></p></td>
+<td><p>更新教授的优先级</p></td>
+</tr>
+</tbody>
+</table>
+<p>详细示例：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+
+<span class="c1"># 获取统计信息</span>
+<span class="n">stats</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:5000/api/stats&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;教授数: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;professors&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, 论文数: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;papers&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># 获取教授列表</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:5000/api/professors&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<span class="n">professors</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;professors&#39;</span><span class="p">]</span>
+
+<span class="c1"># 更新优先级</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+    <span class="s1">&#39;http://localhost:5000/api/professor/1/priority&#39;</span><span class="p">,</span>
+    <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;priority&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="c1"># 返回: {&quot;success&quot;: true, &quot;priority&quot;: 1}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Web 服务器入口位于 <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/app.py</span></code>。
+静态文件（HTML/CSS/JS）托管在 <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/static/</span></code>。</p>
+</div>
+</section>
 <section id="id1">
 <h2>命令行参考<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>主程序入口: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span></code></p>
