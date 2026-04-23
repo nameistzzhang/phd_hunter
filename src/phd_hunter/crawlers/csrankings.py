@@ -3,6 +3,7 @@
 from typing import List, Optional, Dict, Any, Tuple, Union
 from pydantic import BaseModel, Field
 import time
+import threading
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,6 +17,11 @@ from ..utils.logger import get_logger, setup_logger
 from ..database import Database
 
 logger = get_logger(__name__)
+
+
+class CrawlerInterrupted(Exception):
+    """Raised when the crawler receives a stop signal."""
+    pass
 
 
 class University(BaseModel):
@@ -43,6 +49,8 @@ class CSRankingsCrawler(BaseCrawler):
         timeout: int = 30,
         verbose: bool = False,
         db_path: Optional[str] = None,
+        stop_event=None,
+        progress_callback=None,
         **kwargs
     ):
         """Initialize CSRankings crawler.
@@ -52,6 +60,8 @@ class CSRankingsCrawler(BaseCrawler):
             timeout: Page load timeout
             verbose: Enable verbose logging (DEBUG level)
             db_path: Path to SQLite database file (default: phd_hunter.db in current dir)
+            stop_event: Optional threading.Event to check for stop requests
+            progress_callback: Optional callback(current, total, phase) for progress updates
         """
         super().__init__(**kwargs)
 
@@ -64,6 +74,40 @@ class CSRankingsCrawler(BaseCrawler):
         self.timeout = timeout
         self.driver: Optional[webdriver.Chrome] = None
         self.db = Database(db_path or "phd_hunter.db")
+        self._stop_event = stop_event
+        self._progress_callback = progress_callback
+        self._closed = False
+        self._close_lock = threading.Lock()
+
+    def _report_progress(self, current: int, total: int, phase: str) -> None:
+        """Report progress via callback if registered."""
+        if self._progress_callback is not None:
+            try:
+                self._progress_callback(current, total, phase)
+            except Exception:
+                pass
+
+    def _check_stop(self):
+        """Check if a stop has been requested and raise CrawlerInterrupted if so."""
+        if self._stop_event is not None and self._stop_event.is_set():
+            logger.info("Stop signal received in crawler, aborting...")
+            raise CrawlerInterrupted("Crawler stopped by user request")
+
+    def _interruptible_sleep(self, seconds: float, check_interval: float = 0.1) -> None:
+        """Sleep for the given duration, but check for stop signal periodically.
+
+        If a stop is requested during the sleep, raises CrawlerInterrupted immediately.
+
+        Args:
+            seconds: Total time to sleep
+            check_interval: How often to check the stop signal (seconds)
+        """
+        elapsed = 0.0
+        while elapsed < seconds:
+            self._check_stop()
+            sleep_duration = min(check_interval, seconds - elapsed)
+            time.sleep(sleep_duration)
+            elapsed += sleep_duration
 
     def _init_driver(self) -> None:
         """Initialize Selenium WebDriver."""
@@ -83,23 +127,38 @@ class CSRankingsCrawler(BaseCrawler):
         self.driver.implicitly_wait(self.timeout)
 
     def close(self) -> None:
-        """Close WebDriver and release resources."""
-        if hasattr(self, 'driver') and self.driver:
-            try:
-                self.driver.quit()
-                logger.debug("WebDriver closed")
-            except Exception as e:
-                logger.debug(f"WebDriver already closed or error during quit: {e}")
-            finally:
-                self.driver = None
+        """Close WebDriver and release resources (thread-safe, idempotent)."""
+        with self._close_lock:
+            if self._closed:
+                logger.debug("Crawler already closed, skipping")
+                return
+            self._closed = True
 
-        # Close database connection
-        if hasattr(self, 'db') and self.db:
-            try:
-                self.db.close()
-                logger.debug("Database connection closed")
-            except Exception as e:
-                logger.debug(f"Error closing database: {e}")
+        def _do_close():
+            # Close WebDriver
+            if self.driver:
+                try:
+                    self.driver.quit()
+                    logger.debug("WebDriver closed")
+                except Exception as e:
+                    logger.debug(f"WebDriver already closed or error during quit: {e}")
+                finally:
+                    self.driver = None
+
+            # Close database connection
+            if self.db:
+                try:
+                    self.db.close()
+                    logger.debug("Database connection closed")
+                except Exception as e:
+                    logger.debug(f"Error closing database: {e}")
+
+        # Run quit in daemon thread with timeout to avoid Windows WebDriver hang
+        t = threading.Thread(target=_do_close, daemon=True)
+        t.start()
+        t.join(timeout=3.0)
+        if t.is_alive():
+            logger.warning("WebDriver quit timed out after 3s, force-closing")
 
     def _wait_for_ranking_table(self, timeout: int = 10) -> bool:
         """Wait for ranking table to be present.
@@ -110,17 +169,25 @@ class CSRankingsCrawler(BaseCrawler):
         Returns:
             True if table loaded, False if timeout
         """
-        try:
-            wait = WebDriverWait(self.driver, timeout)
-            # Use JavaScript to check table presence (more robust)
-            wait.until(lambda d: d.execute_script(
-                "return document.getElementById('ranking') !== null;"
-            ))
-            logger.debug("Ranking table is present")
-            return True
-        except TimeoutException:
-            logger.warning(f"Ranking table not loaded after {timeout}s")
-            return False
+        # Use short-poll loop to allow stop signal checking during wait
+        elapsed = 0.0
+        poll_interval = 0.3
+        while elapsed < timeout:
+            self._check_stop()
+            try:
+                table_exists = self.driver.execute_script(
+                    "return document.getElementById('ranking') !== null;"
+                )
+                if table_exists:
+                    logger.debug("Ranking table is present")
+                    return True
+            except Exception:
+                pass
+            self._interruptible_sleep(poll_interval)
+            elapsed += poll_interval
+
+        logger.warning(f"Ranking table not loaded after {timeout}s")
+        return False
 
     def fetch(
         self,
@@ -223,15 +290,23 @@ class CSRankingsCrawler(BaseCrawler):
             all_rows = soup.select("table#ranking tbody tr")
             logger.debug(f"Found {len(all_rows)} total rows")
 
+            total_rows = len(all_rows)
             for idx, row in enumerate(all_rows):
                 try:
+                    # Check for stop signal every row to ensure quick response
+                    self._check_stop()
+
+                    # Report progress every few rows
+                    if idx % 3 == 0 or idx == total_rows - 1:
+                        self._report_progress(idx + 1, total_rows, 'crawl_universities')
+
                     # Only process 4-cell rows (university data)
                     cells = row.select("td")
                     if len(cells) != 4:
                         logger.debug(f"Row {idx+1}: Skipped (expected 4 cells, got {len(cells)})")
                         continue
 
-                    logger.debug(f"Parsing university row {idx+1}/{len(all_rows)}")
+                    logger.debug(f"Parsing university row {idx+1}/{total_rows}")
                     university = self._parse_university_row(row)
                     if university:
                         universities_list.append(university)
@@ -294,8 +369,8 @@ class CSRankingsCrawler(BaseCrawler):
     def _close_overlays(self) -> None:
         """Close any popup overlays (sponsor, survey, PhD inquiry, Tour)."""
         try:
-            # Wait briefly for overlays to appear
-            time.sleep(1)
+            # Wait briefly for overlays to appear (interruptible)
+            self._interruptible_sleep(1.0)
 
             # Method 1: Close Shepherd Tour popup (specific button)
             try:
@@ -307,12 +382,12 @@ class CSRankingsCrawler(BaseCrawler):
                     logger.debug(f"Found Tour close button, attempting to click")
                     try:
                         shepherd_close[0].click()
-                        time.sleep(0.5)
+                        self._interruptible_sleep(0.5)
                         logger.debug("Tour popup closed via aria-label button")
                     except Exception as e:
                         logger.debug(f"Direct click failed: {e}, trying JavaScript")
                         self.driver.execute_script("arguments[0].click();", shepherd_close[0])
-                        time.sleep(0.5)
+                        self._interruptible_sleep(0.5)
             except Exception as e:
                 logger.debug(f"Shepherd Tour close attempt failed: {e}")
 
@@ -326,10 +401,10 @@ class CSRankingsCrawler(BaseCrawler):
                     logger.debug("Found Tour button via absolute XPath, clicking")
                     try:
                         xpath_btn[0].click()
-                        time.sleep(0.5)
+                        self._interruptible_sleep(0.5)
                     except Exception:
                         self.driver.execute_script("arguments[0].click();", xpath_btn[0])
-                        time.sleep(0.5)
+                        self._interruptible_sleep(0.5)
             except Exception as e:
                 logger.debug(f"XPath button click failed: {e}")
 
@@ -340,10 +415,12 @@ class CSRankingsCrawler(BaseCrawler):
                     el.remove();
                 });
             """)
-            time.sleep(0.5)
+            self._interruptible_sleep(0.5)
 
             logger.debug("Overlay close sequence completed")
 
+        except CrawlerInterrupted:
+            raise
         except Exception as e:
             logger.warning(f"Overlay close failed: {e}")
 
@@ -371,8 +448,8 @@ class CSRankingsCrawler(BaseCrawler):
             wait.until(hash_stabilized)
             logger.debug("URL hash stabilized: " + self.driver.current_url)
 
-            # Additional short wait for table DOM to update
-            time.sleep(1.5)
+            # Additional short wait for table DOM to update (interruptible)
+            self._interruptible_sleep(1.5)
 
             # Verify table has content using JavaScript to avoid stale element issues
             table_exists = self.driver.execute_script("""
@@ -434,13 +511,20 @@ class CSRankingsCrawler(BaseCrawler):
 
         logger.debug(f"Will process {len(uni_names_to_process)} universities: {uni_names_to_process}")
 
+        total_unis = len(uni_names_to_process)
         # Process each university: re-fetch fresh DOM each time to avoid stale elements
         for idx, uni_name in enumerate(uni_names_to_process):
+            # Check for stop signal before processing each university
+            self._check_stop()
+
+            # Report progress
+            self._report_progress(idx + 1, total_unis, 'crawl_professors')
+
             university = uni_name_to_obj.get(uni_name)
             if not university:
                 continue
 
-            logger.debug(f"[{idx+1}/{len(uni_names_to_process)}] Processing: {uni_name}")
+            logger.debug(f"[{idx+1}/{total_unis}] Processing: {uni_name}")
 
             # Re-fetch all rows to get fresh DOM
             all_rows = driver.find_elements(By.CSS_SELECTOR, "table#ranking tbody tr")
@@ -464,6 +548,9 @@ class CSRankingsCrawler(BaseCrawler):
                 logger.warning(f"  Could not find university row in table, skipping")
                 continue
 
+            # Check stop signal before interacting with element
+            self._check_stop()
+
             # Find expand button
             try:
                 expand_spans = current_uni_row.find_elements(By.XPATH, ".//span[contains(@onclick, 'toggleFaculty')]")
@@ -477,7 +564,10 @@ class CSRankingsCrawler(BaseCrawler):
 
             # Expand
             driver.execute_script("arguments[0].click();", expand_span)
-            time.sleep(1.0)
+            self._interruptible_sleep(1.0)
+
+            # Check stop signal after expansion wait
+            self._check_stop()
 
             # Re-fetch all rows after expansion (fresh DOM)
             all_rows_expanded = driver.find_elements(By.CSS_SELECTOR, "table#ranking tbody tr")
@@ -500,15 +590,24 @@ class CSRankingsCrawler(BaseCrawler):
             if not current_uni_row_expanded:
                 logger.warning(f"  Could not find university row after expansion, skipping")
                 driver.execute_script("arguments[0].click();", expand_span)
-                time.sleep(0.3)
+                self._interruptible_sleep(0.3)
                 continue
+
+            # Check stop signal before parsing faculty rows
+            self._check_stop()
 
             # Stream through faculty rows with immediate parsing and limit check
             start_idx = all_rows_expanded.index(current_uni_row_expanded)
             extracted_count = 0
+            row_counter = 0
 
             # Iterate through rows immediately after current university row
             for subsequent in all_rows_expanded[start_idx + 1:]:
+                # Check stop signal every few rows during parsing
+                row_counter += 1
+                if row_counter % 3 == 0:
+                    self._check_stop()
+
                 cls = subsequent.get_attribute("class") or ""
                 tds = subsequent.find_elements(By.TAG_NAME, "td")
 
@@ -533,9 +632,12 @@ class CSRankingsCrawler(BaseCrawler):
 
             logger.debug(f"  Extracted {extracted_count} professors from {uni_name}")
 
+            # Check stop signal before collapse
+            self._check_stop()
+
             # Collapse
             driver.execute_script("arguments[0].click();", expand_span)
-            time.sleep(0.4)
+            self._interruptible_sleep(0.4)
 
         logger.info(f"Extracted {len(professors)} professors from {len(uni_names_to_process)} universities "
                     f"(max_unis={max_universities}, max_per_uni={max_professors_per_university})")
@@ -833,8 +935,8 @@ class CSRankingsCrawler(BaseCrawler):
             """)
             logger.debug(f"Slider set result: {result}")
 
-            # Small wait for UI to update
-            time.sleep(0.5)
+            # Small wait for UI to update (interruptible)
+            self._interruptible_sleep(0.5)
 
             # Verify the year displays updated using JavaScript with null checks
             from_display = self.driver.execute_script("""

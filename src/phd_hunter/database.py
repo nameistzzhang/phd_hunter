@@ -6,6 +6,9 @@ from typing import Optional, List, Dict, Any
 from pathlib import Path
 
 from .models import Professor, University, ProfessorStatus
+from .utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class Database:
@@ -66,12 +69,17 @@ class Database:
             )
         """)
 
+        # Migrate papers table if it exists with old schema (must happen before CREATE)
+        self._migrate_papers_table_if_needed()
+
         # Papers table - stores individual paper records linked to professors
+        # NOTE: s2_paper_id is NOT globally unique; a paper can belong to multiple professors.
+        #       The uniqueness constraint is on (professor_id, s2_paper_id) to prevent duplicates per professor.
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS papers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 professor_id INTEGER NOT NULL,
-                s2_paper_id TEXT UNIQUE,  -- Semantic Scholar paper ID
+                s2_paper_id TEXT NOT NULL,
                 title TEXT NOT NULL,
                 abstract TEXT,
                 year INTEGER,
@@ -83,7 +91,8 @@ class Database:
                 local_pdf_path TEXT,
                 publication_type TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (professor_id) REFERENCES professors(id) ON DELETE CASCADE
+                FOREIGN KEY (professor_id) REFERENCES professors(id) ON DELETE CASCADE,
+                UNIQUE(professor_id, s2_paper_id)
             )
         """)
 
@@ -112,6 +121,101 @@ class Database:
             cursor.execute("ALTER TABLE professors ADD COLUMN priority INTEGER DEFAULT -1")
             self.conn.commit()
             print("[Migration] Added 'priority' column to professors table")
+
+    def _migrate_papers_table_if_needed(self) -> None:
+        """Check if papers table needs migration from old schema (UNIQUE on s2_paper_id)
+        to new schema (UNIQUE(professor_id, s2_paper_id)). If migration needed, rebuild table."""
+        cursor = self.conn.cursor()
+
+        # Check if papers table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='papers'")
+        if not cursor.fetchone():
+            return  # Table doesn't exist yet; will be created fresh with new schema
+
+        # Detect old schema: look for a UNIQUE index on s2_paper_id only (single-column unique)
+        # Use PRAGMA index_list to get all indexes and their uniqueness
+        cursor.execute("PRAGMA index_list('papers')")
+        indexes = cursor.fetchall()  # each row: seq, name, unique, origin, partial
+        has_s2_unique = False
+        for idx in indexes:
+            idx_name = idx['name']
+            is_unique = bool(idx['unique'])
+            if not is_unique:
+                continue
+            # Get columns for this unique index
+            cursor.execute(f"PRAGMA index_info('{idx_name}')")
+            cols = [row['name'] for row in cursor.fetchall()]
+            # Old schema: single-column unique index on s2_paper_id
+            if len(cols) == 1 and cols[0] == 's2_paper_id':
+                has_s2_unique = True
+                break
+            # Also catch case where it's a unique index that includes s2_paper_id but not professor_id?
+            # But the new schema's unique constraint on (professor_id, s2_paper_id) will have 2 columns.
+            # So any unique index that does NOT contain professor_id and contains s2_paper_id could be old.
+            # However, we only expect single-column s2_paper_id unique in old.
+        if has_s2_unique:
+            print("[Migration] Detected old unique index on s2_paper_id. Migrating papers table to composite unique...")
+            self._rebuild_papers_table()
+
+    def _rebuild_papers_table(self) -> None:
+        """Rebuild papers table with composite unique constraint, preserving existing data."""
+        cursor = self.conn.cursor()
+        try:
+            # 1. Rename old table
+            cursor.execute("ALTER TABLE papers RENAME TO papers_old")
+
+            # 2. Create new papers table with correct schema
+            cursor.execute("""
+                CREATE TABLE papers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    professor_id INTEGER NOT NULL,
+                    s2_paper_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    abstract TEXT,
+                    year INTEGER,
+                    venue TEXT,
+                    doi TEXT,
+                    url TEXT,
+                    citation_count INTEGER DEFAULT 0,
+                    openaccess_pdf TEXT,
+                    local_pdf_path TEXT,
+                    publication_type TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (professor_id) REFERENCES professors(id) ON DELETE CASCADE,
+                    UNIQUE(professor_id, s2_paper_id)
+                )
+            """)
+
+            # 3. Copy data from old table (skip rows with NULL s2_paper_id to satisfy NOT NULL)
+            cursor.execute("""
+                INSERT INTO papers
+                (id, professor_id, s2_paper_id, title, abstract, year, venue, doi, url, citation_count, openaccess_pdf, local_pdf_path, publication_type, created_at)
+                SELECT id, professor_id, s2_paper_id, title, abstract, year, venue, doi, url, citation_count, openaccess_pdf, local_pdf_path, publication_type, created_at
+                FROM papers_old
+                WHERE s2_paper_id IS NOT NULL
+            """)
+            copied = cursor.rowcount
+
+            # 4. Drop old table
+            cursor.execute("DROP TABLE papers_old")
+
+            self.conn.commit()
+            print(f"[Migration] Papers table rebuilt successfully. Copied {copied} rows.")
+        except Exception as e:
+            # If anything fails, try to recover
+            print(f"[Migration] Error during papers table migration: {e}")
+            # Attempt to restore: if papers_old exists and papers exists, drop new and rename back
+            try:
+                cursor.execute("DROP TABLE papers")
+            except:
+                pass
+            try:
+                cursor.execute("ALTER TABLE papers_old RENAME TO papers")
+                self.conn.commit()
+                print("[Migration] Rolled back to old table.")
+            except Exception as e2:
+                print(f"[Migration] Rollback failed: {e2}")
+            raise
 
     def update_professor_priority(self, professor_id: int, priority: int) -> bool:
         """Update priority for a professor.
@@ -295,7 +399,7 @@ class Database:
             ))
             paper_id = cursor.lastrowid
         except sqlite3.IntegrityError:
-            # Paper exists (by s2_paper_id), update
+            # Paper exists (by (professor_id, s2_paper_id) unique constraint), update
             s2_id = paper_data.get('s2_paper_id') or paper_data.get('paper_id')
             cursor.execute("""
                 UPDATE papers
@@ -317,9 +421,16 @@ class Database:
                 prepare(s2_id),
                 prepare(professor_id),
             ))
+            # Fetch the ID of the existing/updated row
             cursor.execute("SELECT id FROM papers WHERE s2_paper_id = ? AND professor_id = ?",
                           (prepare(s2_id), prepare(professor_id)))
-            paper_id = cursor.fetchone()["id"]
+            row = cursor.fetchone()
+            if row is None:
+                # This should not happen: the row should exist after UPDATE on unique constraint
+                # Log error and raise to avoid crash
+                logger.error(f"Failed to locate paper after UPDATE: professor_id={professor_id}, s2_paper_id={s2_id}")
+                raise ValueError(f"Paper not found after upsert: professor={professor_id}, paper={s2_id}")
+            paper_id = row["id"]
 
         self.conn.commit()
         return paper_id

@@ -16,11 +16,11 @@
                     <img src="static/windsurf.svg" alt="Logo" class="nav-logo">
                     <span class="brand-text">PhD Hunter</span>
                     <span class="nav-divider"></span>
-                    <a href="#" class="nav-link active">Profile</a>
+                    <button class="nav-link nav-button active" data-page="profile">Profile</button>
                     <span class="nav-separator">›</span>
-                    <a href="#" class="nav-link">Hunt</a>
+                    <button class="nav-link nav-button" data-page="hunt">Hunt</button>
                     <span class="nav-separator">›</span>
-                    <a href="#" class="nav-link">Chat</a>
+                    <button class="nav-link nav-button" data-page="chat">Chat</button>
                 </div>
 
                 <!-- Right side: Settings -->
@@ -30,44 +30,271 @@
             </div>
         </nav>
 
-    <!-- Main Body: Chat + Info -->
+    <!-- Main Body: Chat (left) + Professor List (right, always visible) -->
     <div class="main-body">
-        <!-- Left: Chat Panel (60%) -->
+        <!-- Left: Chat Panel (60%) - Contains 3 switchable pages -->
         <section class="chat-panel">
-            <div class="chat-header">
-                <h1>Professor Finder</h1>
-                <p class="subtitle">Search and analyze CS professors</p>
+            <!-- Page: Profile (blank) -->
+            <div class="page-container" id="page-profile">
+                <div class="blank-page">
+                    <h1>profile</h1>
+                </div>
             </div>
 
-            <div class="chat-messages" id="chat-messages">
-                <div class="message assistant">
-                    <div class="message-content">
-                        <p>Hello. I'm the PhD Hunter assistant.</p>
-                        <p>I can help you:</p>
-                        <ul>
-                            <li>Analyze professor research areas</li>
-                            <li>Assess application fit</li>
-                            <li>Provide application strategy</li>
-                        </ul>
-                        <p>Click any professor on the right to start.</p>
+            <!-- Page: Hunt (configuration + progress) -->
+            <div class="page-container" id="page-hunt">
+                <div class="hunt-page">
+                    <div class="hunt-header">
+                        <h1>Hunt Configuration</h1>
+                        <p class="subtitle">Configure and start hunting for professors</p>
+                    </div>
+
+                    <div class="hunt-content">
+                        <!-- Configuration Form -->
+                        <div class="hunt-form">
+                            <div class="form-group">
+                                <label for="hunt-area">Research Area</label>
+                                <select id="hunt-area" class="form-select">
+                                    <option value="" disabled selected>Please select your research area</option>
+                                    <option value="ai">Artificial Intelligence (AI)</option>
+                                    <option value="ml">Machine Learning (ML)</option>
+                                    <option value="nlp">Natural Language Processing</option>
+                                    <option value="vision">Computer Vision</option>
+                                    <option value="ir">Information Retrieval</option>
+                                    <option value="systems">Systems</option>
+                                    <option value="arch">Computer Architecture</option>
+                                    <option value="net">Networking</option>
+                                    <option value="os">Operating Systems</option>
+                                    <option value="da">Data Engineering</option>
+                                    <option value="es">Embedded Systems</option>
+                                    <option value="hpca">High Performance Computing</option>
+                                    <option value="mob">Mobile Computing</option>
+                                    <option value="metrics">Measurement & Metrics</option>
+                                    <option value="pl">Programming Languages</option>
+                                    <option value="se">Software Engineering</option>
+                                    <option value="sec">Security</option>
+                                    <option value="crypto">Cryptography</option>
+                                    <option value="theory">Theory</option>
+                                    <option value="db">Databases</option>
+                                    <option value="hci">Human-Computer Interaction</option>
+                                    <option value="interdisciplinary">Interdisciplinary</option>
+                                    <option value="bio">Bioinformatics</option>
+                                    <option value="graphics">Computer Graphics</option>
+                                    <option value="ed">Educational Technology</option>
+                                    <option value="econ">Economics & Computation</option>
+                                    <option value="robotics">Robotics</option>
+                                    <option value="visualization">Visualization</option>
+                                </select>
+                                <div class="selected-tags" id="area-tags"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="hunt-region">Region</label>
+                                                                <select id="hunt-region" class="form-select">
+                                    <option value="" disabled>Please select the region you want to accomplish your phd project</option>
+                                    <optgroup label="── Asia ──">
+                                        <option value="asia">Asia</option>
+                                        <option value="cn">China</option>
+                                        <option value="jp">Japan</option>
+                                        <option value="in">India</option>
+                                        <option value="kr">South Korea</option>
+                                        <option value="sg">Singapore</option>
+                                        <option value="hk">Hong Kong</option>
+                                        <option value="tw">Taiwan</option>
+                                        <option value="mo">Macao</option>
+                                        <option value="my">Malaysia</option>
+                                        <option value="id">Indonesia</option>
+                                        <option value="ph">Philippines</option>
+                                        <option value="th">Thailand</option>
+                                        <option value="vn">Vietnam</option>
+                                        <option value="lk">Sri Lanka</option>
+                                        <option value="bd">Bangladesh</option>
+                                    </optgroup>
+                                    <optgroup label="── North America ──">
+                                        <option value="northamerica">North America</option>
+                                        <option value="us">United States</option>
+                                        <option value="ca">Canada</option>
+                                    </optgroup>
+                                    <optgroup label="── Europe ──">
+                                        <option value="europe">Europe</option>
+                                        <option value="gb">United Kingdom</option>
+                                        <option value="de">Germany</option>
+                                        <option value="fr">France</option>
+                                        <option value="it">Italy</option>
+                                        <option value="es">Spain</option>
+                                        <option value="nl">Netherlands</option>
+                                        <option value="ch">Switzerland</option>
+                                        <option value="se">Sweden</option>
+                                        <option value="at">Austria</option>
+                                        <option value="be">Belgium</option>
+                                        <option value="dk">Denmark</option>
+                                        <option value="fi">Finland</option>
+                                        <option value="gr">Greece</option>
+                                        <option value="ie">Ireland</option>
+                                        <option value="pl">Poland</option>
+                                        <option value="pt">Portugal</option>
+                                        <option value="cz">Czech Republic</option>
+                                        <option value="hu">Hungary</option>
+                                        <option value="ro">Romania</option>
+                                        <option value="sk">Slovakia</option>
+                                        <option value="bg">Bulgaria</option>
+                                        <option value="lu">Luxembourg</option>
+                                        <option value="mt">Malta</option>
+                                        <option value="cy">Cyprus</option>
+                                        <option value="ee">Estonia</option>
+                                        <option value="lv">Latvia</option>
+                                        <option value="lt">Lithuania</option>
+                                        <option value="ua">Ukraine</option>
+                                        <option value="by">Belarus</option>
+                                        <option value="rs">Serbia</option>
+                                        <option value="hr">Croatia</option>
+                                        <option value="si">Slovenia</option>
+                                        <option value="no">Norway</option>
+                                        <option value="ru">Russia</option>
+                                        <option value="tr">Turkey</option>
+                                    </optgroup>
+                                    <optgroup label="── Oceania ──">
+                                        <option value="australasia">Australasia</option>
+                                        <option value="au">Australia</option>
+                                        <option value="nz">New Zealand</option>
+                                    </optgroup>
+                                    <optgroup label="── South America ──">
+                                        <option value="southamerica">South America</option>
+                                        <option value="br">Brazil</option>
+                                        <option value="ar">Argentina</option>
+                                        <option value="cl">Chile</option>
+                                        <option value="co">Colombia</option>
+                                    </optgroup>
+                                    <optgroup label="── Africa ──">
+                                        <option value="africa">Africa</option>
+                                        <option value="za">South Africa</option>
+                                        <option value="eg">Egypt</option>
+                                        <option value="ma">Morocco</option>
+                                    </optgroup>
+                                    <optgroup label="── Middle East ──">
+                                        <option value="ae">United Arab Emirates</option>
+                                        <option value="sa">Saudi Arabia</option>
+                                        <option value="il">Israel</option>
+                                        <option value="ir">Iran</option>
+                                        <option value="jo">Jordan</option>
+                                        <option value="qa">Qatar</option>
+                                        <option value="lb">Lebanon</option>
+                                        <option value="pk">Pakistan</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label for="hunt-start-year">Start Year</label>
+                                    <input type="number" id="hunt-start-year" class="form-input" min="2018" max="2030" value="2024">
+                                </div>
+                                <div class="form-group half">
+                                    <label for="hunt-end-year">End Year</label>
+                                    <input type="number" id="hunt-end-year" class="form-input" min="2020" max="2035" value="2026">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label for="hunt-max-universities">Max Universities</label>
+                                    <input type="number" id="hunt-max-universities" class="form-input" min="1" max="100" value="10">
+                                </div>
+                                <div class="form-group half">
+                                    <label for="hunt-max-professors">Max Professors / Uni</label>
+                                    <input type="number" id="hunt-max-professors" class="form-input" min="1" max="50" value="5">
+                                </div>
+                                <div class="form-group half">
+                                    <label for="hunt-max-papers">Papers / Professor</label>
+                                    <input type="number" id="hunt-max-papers" class="form-input" min="1" max="50" value="10">
+                                </div>
+                            </div>
+
+                            <div class="hunt-buttons">
+                                <button id="start-hunt-btn" class="hunt-button">
+                                    <span class="button-text">Start Hunting</span>
+                                    <span class="button-loading" style="display: none;">Hunting in progress...</span>
+                                </button>
+                                <button id="stop-hunt-btn" class="hunt-button hunt-button-secondary" style="display: none;">
+                                    <span class="button-text">Stop Hunting</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Progress Panel (hidden initially) -->
+                        <div class="hunt-progress" id="hunt-progress" style="display: none;">
+                            <div class="progress-card">
+                                <h3>Hunting Progress</h3>
+
+                                <!-- Phase 1: Professors Progress -->
+                                <div class="progress-phase" id="phase-crawl">
+                                    <div class="progress-label">
+                                        <span>Crawling Professors</span>
+                                        <span class="progress-percent" id="professors-percent">0%</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" id="professors-bar"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Phase 2: Papers Progress -->
+                                <div class="progress-phase" id="phase-papers" style="display: none;">
+                                    <div class="progress-label">
+                                        <span>Fetching Paper Info</span>
+                                        <span class="progress-percent" id="papers-percent">0%</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" id="papers-bar"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Log output -->
+                                <div class="progress-logs" id="progress-logs">
+                                    <!-- Log lines will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="chat-input-area">
-                <div class="input-wrapper">
-                    <input type="text" id="user-input" placeholder="Type a question..." autocomplete="off">
-                    <button id="send-btn" type="button">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                    </button>
+            <!-- Page: Chat (default) -->
+            <div class="page-container active" id="page-chat">
+                <div class="chat-header">
+                    <h1>Professor Finder</h1>
+                    <p class="subtitle">Search and analyze CS professors</p>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <p>Hello. I'm the PhD Hunter assistant.</p>
+                            <p>I can help you:</p>
+                            <ul>
+                                <li>Analyze professor research areas</li>
+                                <li>Assess application fit</li>
+                                <li>Provide application strategy</li>
+                            </ul>
+                            <p>Click any professor on the right to start.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <input type="text" id="user-input" placeholder="Type a question..." autocomplete="off">
+                        <button id="send-btn" type="button">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Right: Professor List (40%) -->
+        <!-- Right: Professor List (40%) - Always visible -->
         <section class="info-panel">
             <div class="info-header">
                 <div class="header-row">
@@ -125,6 +352,11 @@
                 <!-- Dynamic content -->
             </div>
         </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden">
+        <span id="toast-message"></span>
     </div>
 
     <script src="static/app.js"></script>

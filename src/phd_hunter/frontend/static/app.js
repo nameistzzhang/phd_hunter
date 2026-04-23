@@ -3,11 +3,120 @@
 let professors = [];
 let selectedProfessor = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
+const ACTIVE_PAGE_KEY = 'phd_hunter_active_page';
+
+// Toast notification helper (non-blocking)
+function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-message');
+    if (!toast || !toastMsg) return;
+
+    toastMsg.textContent = message;
+    toast.className = 'toast toast-' + type;
+
+    // Clear any existing timeout
+    if (toast._timeout) {
+        clearTimeout(toast._timeout);
+    }
+
+    toast._timeout = setTimeout(() => {
+        toast.classList.add('hidden');
+    }, duration);
+}
+
+// Direct initialization (script is at end of body, DOM is ready)
+initPageNavigation();
+
+// Async initialization for data-dependent functions
+(async function initData() {
+    await loadHuntConfig();      // Restore hunt config from server first
     await loadStats();
     await loadProfessors();
     initFilters();
+    // Restore hunt progress if a hunt is still running
+    await restoreHuntProgress();
+})();
+
+// Stop Hunt button handler
+document.getElementById('stop-hunt-btn').addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to stop the current hunt?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/stop-hunt', { method: 'POST' });
+        if (!response.ok) {
+            const error = await response.json();
+            showToast('Failed to stop: ' + (error.message || 'Unknown error'), 'error');
+            return;
+        }
+
+        showToast('Hunting stopped.', 'info');
+        // Stop polling and reset UI immediately (no reload needed)
+        if (huntPollingInterval) {
+            clearInterval(huntPollingInterval);
+            huntPollingInterval = null;
+        }
+        resetHuntButton();
+        // Refresh professor list to show newly fetched data
+        await loadProfessors();
+    } catch (error) {
+        showToast('Error stopping hunt: ' + error.message, 'error');
+    }
 });
+
+// ============ Page Navigation ============
+
+function initPageNavigation() {
+    const navButtons = document.querySelectorAll('.nav-button');
+    navButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = button.dataset.page;
+            switchPage(page);
+        });
+    });
+}
+
+function switchPage(pageName) {
+    console.log('Switching to page:', pageName);
+
+    // Save active page to localStorage so refresh restores it
+    localStorage.setItem(ACTIVE_PAGE_KEY, pageName);
+
+    // Update nav button states
+    document.querySelectorAll('.nav-button').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.page === pageName) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Hide all pages (remove active class AND force hide)
+    document.querySelectorAll('.page-container').forEach(page => {
+        page.classList.remove('active');
+        page.style.display = 'none';
+    });
+
+    // Show target page (add active class AND force display)
+    const targetPage = document.getElementById(`page-${pageName}`);
+    if (targetPage) {
+        targetPage.classList.add('active');
+        targetPage.style.display = 'flex';
+        console.log('Showing page:', pageName);
+    } else {
+        console.error('Page not found:', `page-${pageName}`);
+    }
+}
+
+function restoreActivePage() {
+    const savedPage = localStorage.getItem(ACTIVE_PAGE_KEY);
+    if (savedPage) {
+        switchPage(savedPage);
+    }
+}
+
+// ============ End Page Navigation ============
 
 // Load statistics
 async function loadStats() {
@@ -346,7 +455,7 @@ async function updatePriority(event) {
     } catch (error) {
         console.error('Failed to update priority:', error);
         // Revert selection on error
-        alert('Failed to update priority. Please try again.');
+        showToast('Failed to update priority. Please try again.', 'error');
     }
 }
 
@@ -356,3 +465,487 @@ document.getElementById('user-input').addEventListener('keypress', (e) => {
 });
 
 document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+// ============ Hunt Page: Tags ============
+
+// Region display name mapping (flag emoji + clean name)
+const REGION_NAMES = {
+    'world': 'World',
+    'asia': 'Asia',
+    'northamerica': 'North America',
+    'europe': 'Europe',
+    'australasia': 'Australasia',
+    'southamerica': 'South America',
+    'africa': 'Africa',
+    'us': 'United States',
+    'cn': 'China',
+    'jp': 'Japan',
+    'in': 'India',
+    'kr': 'South Korea',
+    'sg': 'Singapore',
+    'hk': 'Hong Kong',
+    'tw': 'Taiwan',
+    'mo': 'Macao',
+    'my': 'Malaysia',
+    'id': 'Indonesia',
+    'ph': 'Philippines',
+    'th': 'Thailand',
+    'vn': 'Vietnam',
+    'lk': 'Sri Lanka',
+    'bd': 'Bangladesh',
+    'ca': 'Canada',
+    'gb': 'United Kingdom',
+    'de': 'Germany',
+    'fr': 'France',
+    'it': 'Italy',
+    'es': 'Spain',
+    'nl': 'Netherlands',
+    'ch': 'Switzerland',
+    'se': 'Sweden',
+    'at': 'Austria',
+    'be': 'Belgium',
+    'dk': 'Denmark',
+    'fi': 'Finland',
+    'gr': 'Greece',
+    'ie': 'Ireland',
+    'pl': 'Poland',
+    'pt': 'Portugal',
+    'cz': 'Czech Republic',
+    'hu': 'Hungary',
+    'ro': 'Romania',
+    'sk': 'Slovakia',
+    'bg': 'Bulgaria',
+    'lu': 'Luxembourg',
+    'mt': 'Malta',
+    'cy': 'Cyprus',
+    'ee': 'Estonia',
+    'lv': 'Latvia',
+    'lt': 'Lithuania',
+    'ua': 'Ukraine',
+    'by': 'Belarus',
+    'rs': 'Serbia',
+    'hr': 'Croatia',
+    'si': 'Slovenia',
+    'no': 'Norway',
+    'au': ' Australia',
+    'nz': ' New Zealand',
+    'br': ' Brazil',
+    'ar': ' Argentina',
+    'cl': ' Chile',
+    'co': ' Colombia',
+    'za': ' South Africa',
+    'eg': ' Egypt',
+    'ma': ' Morocco',
+    'ae': ' UAE',
+    'sa': ' Saudi Arabia',
+    'il': ' Israel',
+    'ir': ' Iran',
+    'jo': ' Jordan',
+    'qa': ' Qatar',
+    'lb': ' Lebanon',
+    'pk': ' Pakistan',
+    'ru': 'Russia',
+    'tr': 'Turkey'
+};
+
+// Research Area display names
+const AREA_NAMES = {
+    'ai': 'AI',
+    'ml': 'ML',
+    'nlp': 'NLP',
+    'vision': 'Vision',
+    'ir': 'Information Retrieval',
+    'systems': 'Systems',
+    'arch': 'Architecture',
+    'net': 'Networking',
+    'os': 'Operating Systems',
+    'da': 'Data Engineering',
+    'es': 'Embedded Systems',
+    'hpca': 'High Performance Computing',
+    'mob': 'Mobile Computing',
+    'metrics': 'Metrics',
+    'pl': 'Programming Languages',
+    'se': 'Software Engineering',
+    'sec': 'Security',
+    'crypto': 'Cryptography',
+    'theory': 'Theory',
+    'db': 'Databases',
+    'hci': 'HCI',
+    'interdisciplinary': 'Interdisciplinary',
+    'bio': 'Bioinformatics',
+    'graphics': 'Graphics',
+    'ed': 'Educational Tech',
+    'econ': 'Economics',
+    'robotics': 'Robotics',
+    'visualization': 'Visualization'
+};
+
+// Selection state (loaded from server config, not localStorage)
+let selectedRegion = '';
+let selectedAreas = new Set();
+
+function renderAreaTags() {
+    const tagsContainer = document.getElementById('area-tags');
+    if (!tagsContainer) return;
+    tagsContainer.innerHTML = '';
+    selectedAreas.forEach(value => {
+        const tag = document.createElement('span');
+        tag.className = 'area-tag';
+        tag.dataset.area = value;
+        const name = AREA_NAMES[value] || value;
+        tag.innerHTML = `<span>${name}</span><button class="remove-tag" data-value="${value}" title="Remove">×</button>`;
+        tagsContainer.appendChild(tag);
+    });
+
+    tagsContainer.querySelectorAll('.remove-tag').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            selectedAreas.delete(e.target.dataset.value);
+            saveSelectedAreas();
+            renderAreaTags();
+        });
+    });
+}
+
+// Save selections to server config
+async function saveSelectedRegion() {
+    try {
+        await fetch('/api/hunt-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ regions: selectedRegion ? [selectedRegion] : [] })
+        });
+    } catch (e) {
+        console.error('Failed to save region:', e);
+    }
+}
+
+async function saveSelectedAreas() {
+    try {
+        await fetch('/api/hunt-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ areas: Array.from(selectedAreas) })
+        });
+    } catch (e) {
+        console.error('Failed to save areas:', e);
+    }
+}
+
+// Load hunt config from server and restore UI
+async function loadHuntConfig() {
+    try {
+        const response = await fetch('/api/hunt-config');
+        if (!response.ok) return;
+        const config = await response.json();
+
+        // Restore areas
+        if (config.areas && Array.isArray(config.areas)) {
+            selectedAreas = new Set(config.areas);
+        }
+        // Restore region (single selection from first item)
+        if (config.regions && Array.isArray(config.regions) && config.regions.length > 0) {
+            selectedRegion = config.regions[0];
+        }
+        // Restore year selects
+        if (config.start_year) {
+            const el = document.getElementById('hunt-start-year');
+            if (el) el.value = config.start_year;
+        }
+        if (config.end_year) {
+            const el = document.getElementById('hunt-end-year');
+            if (el) el.value = config.end_year;
+        }
+        if (config.max_universities) {
+            const el = document.getElementById('hunt-max-universities');
+            if (el) el.value = config.max_universities;
+        }
+        if (config.max_professors) {
+            const el = document.getElementById('hunt-max-professors');
+            if (el) el.value = config.max_professors;
+        }
+        if (config.max_papers) {
+            const el = document.getElementById('hunt-max-papers');
+            if (el) el.value = config.max_papers;
+        }
+
+        // Restore region select value
+        const regionSelect = document.getElementById('hunt-region');
+        if (regionSelect && selectedRegion) {
+            regionSelect.value = selectedRegion;
+        }
+
+        // Render area tags
+        renderAreaTags();
+    } catch (error) {
+        console.error('Failed to load hunt config:', error);
+    }
+}
+
+// Initialize region select (single selection, no tags)
+(function initRegionSelect() {
+    const regionSelect = document.getElementById('hunt-region');
+    if (!regionSelect) return;
+
+    regionSelect.addEventListener('change', (e) => {
+        if (e.target.value) {
+            selectedRegion = e.target.value;
+            saveSelectedRegion();
+        }
+    });
+})();
+
+// Initialize area tags
+(function initAreaTags() {
+    const areaSelect = document.getElementById('hunt-area');
+    if (!areaSelect) return;
+
+    areaSelect.addEventListener('change', (e) => {
+        if (e.target.value && !selectedAreas.has(e.target.value)) {
+            selectedAreas.add(e.target.value);
+            saveSelectedAreas();
+            renderAreaTags();
+        }
+        e.target.value = '';
+    });
+})();
+
+// ============ End Hunt Page Tags ============
+
+// ============ Hunt Progress & Background Crawl ============
+
+let huntPollingInterval = null;
+
+// Start Hunt button handler
+document.getElementById('start-hunt-btn').addEventListener('click', async () => {
+    // Collect selected areas
+    const areas = Array.from(selectedAreas);
+    if (areas.length === 0) {
+        showToast('Please select at least one research area.', 'error');
+        return;
+    }
+
+    // Collect selected region
+    const regions = selectedRegion ? [selectedRegion] : [];
+    if (regions.length === 0) {
+        showToast('Please select at least one region.', 'error');
+        return;
+    }
+
+    // Collect other parameters
+    const startYear = parseInt(document.getElementById('hunt-start-year').value);
+    const endYear = parseInt(document.getElementById('hunt-end-year').value);
+    const maxUniversities = parseInt(document.getElementById('hunt-max-universities').value);
+    const maxProfessors = parseInt(document.getElementById('hunt-max-professors').value);
+    const maxPapers = parseInt(document.getElementById('hunt-max-papers').value);
+
+    // Validate
+    if (startYear >= endYear) {
+        showToast('End year must be greater than start year.', 'error');
+        return;
+    }
+
+    // Save full config to server first
+    try {
+        const configResp = await fetch('/api/hunt-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                areas, regions, start_year: startYear, end_year: endYear,
+                max_universities: maxUniversities, max_professors: maxProfessors, max_papers: maxPapers
+            })
+        });
+        if (!configResp.ok) {
+            throw new Error('Failed to save hunt configuration');
+        }
+    } catch (e) {
+        showToast('Error saving config: ' + e.message, 'error');
+        return;
+    }
+
+    // Show progress panel
+    document.getElementById('hunt-progress').style.display = 'block';
+
+    // Reset progress UI
+    resetProgressUI();
+
+    // Disable button during hunt
+    const btn = document.getElementById('start-hunt-btn');
+    btn.disabled = true;
+    btn.querySelector('.button-text').textContent = 'Hunting in progress...';
+
+    // Show stop button
+    document.getElementById('stop-hunt-btn').style.display = 'inline-block';
+
+    // Clear any existing polling
+    if (huntPollingInterval) {
+        clearInterval(huntPollingInterval);
+    }
+
+    // Start polling for status (fast 300ms for responsive stop detection)
+    huntPollingInterval = setInterval(updateHuntProgress, 300);
+
+    // Send start request (no params needed; worker reads from file)
+    try {
+        const response = await fetch('/api/start-hunt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to start hunt');
+        }
+
+        // Save current page and reload to stay on Hunt tab with fresh state
+        localStorage.setItem(ACTIVE_PAGE_KEY, 'hunt');
+        location.reload();
+    } catch (error) {
+        showToast('Error: ' + error.message, 'error');
+        resetHuntButton();
+        document.getElementById('hunt-progress').style.display = 'none';
+        if (huntPollingInterval) {
+            clearInterval(huntPollingInterval);
+            huntPollingInterval = null;
+        }
+    }
+});
+
+// Update progress UI from server
+async function updateHuntProgress() {
+    try {
+        const response = await fetch('/api/hunt-status');
+        if (!response.ok) return;
+
+        const status = await response.json();
+
+        // Update professors progress
+        let profPercent = 0;
+        let profText = '0%';
+        if (status.professors_total === -1) {
+            // Indeterminate: fetching from CSRankings
+            profText = 'Fetching...';
+        } else if (status.professors_total > 0) {
+            profPercent = Math.round((status.professors_completed / status.professors_total) * 100);
+            profText = profPercent + '%';
+        }
+        document.getElementById('professors-bar').style.width = profPercent + '%';
+        document.getElementById('professors-percent').textContent = profText;
+
+        // Update papers progress
+        const papersPercent = status.papers_total > 0
+            ? Math.round((status.papers_completed / status.papers_total) * 100)
+            : 0;
+        document.getElementById('papers-bar').style.width = papersPercent + '%';
+        document.getElementById('papers-percent').textContent = papersPercent + '%';
+
+        // Show/hide phase sections
+        document.getElementById('phase-crawl').style.display = status.running && status.phase === 'crawl' ? 'block' : 'none';
+        document.getElementById('phase-papers').style.display = status.running && status.phase === 'papers' ? 'block' : 'none';
+
+        // Update logs — show only the latest line
+        const logsContainer = document.getElementById('progress-logs');
+        if (status.logs && status.logs.length > 0) {
+            const latestLog = status.logs[status.logs.length - 1];
+            const displayText = '> ' + latestLog;
+            const currentText = logsContainer.textContent;
+            if (currentText !== displayText) {
+                logsContainer.innerHTML = '';
+                const line = document.createElement('div');
+                line.className = 'log-line';
+                line.textContent = displayText;
+                logsContainer.appendChild(line);
+            }
+        }
+
+        // Check if hunt completed or stopped
+        if (!status.running && status.phase === null) {
+            clearInterval(huntPollingInterval);
+            huntPollingInterval = null;
+            resetHuntButton();
+            // Check logs to determine if it was stopped or completed
+            const lastLog = status.logs[status.logs.length - 1] || '';
+            if (lastLog.includes('stopped by user') || lastLog.includes('Stop requested')) {
+                showToast('Hunting stopped.', 'info');
+            } else {
+                showToast('Hunting completed!', 'success');
+            }
+            // Refresh professor list without full page reload
+            await loadProfessors();
+        }
+
+        // Check for error
+        if (status.error) {
+            clearInterval(huntPollingInterval);
+            huntPollingInterval = null;
+            resetHuntButton();
+            showToast('Error: ' + status.error, 'error');
+        }
+
+    } catch (error) {
+        console.error('Failed to update progress:', error);
+    }
+}
+
+function resetProgressUI() {
+    // Reset both progress bars
+    document.getElementById('professors-bar').style.width = '0%';
+    document.getElementById('professors-percent').textContent = '0%';
+    document.getElementById('papers-bar').style.width = '0%';
+    document.getElementById('papers-percent').textContent = '0%';
+
+    // Hide papers phase initially
+    document.getElementById('phase-papers').style.display = 'none';
+    document.getElementById('phase-crawl').style.display = 'block';
+
+    // Clear logs
+    const logsContainer = document.getElementById('progress-logs');
+    logsContainer.innerHTML = '';
+}
+
+function resetHuntButton() {
+    const startBtn = document.getElementById('start-hunt-btn');
+    startBtn.disabled = false;
+    startBtn.querySelector('.button-text').textContent = 'Start Hunting';
+    // Hide stop button
+    const stopBtn = document.getElementById('stop-hunt-btn');
+    stopBtn.style.display = 'none';
+}
+
+// Restore hunt progress on page load (for page refresh scenarios)
+async function restoreHuntProgress() {
+    try {
+        const response = await fetch('/api/hunt-status');
+        if (!response.ok) return;
+
+        const status = await response.json();
+
+        // If a hunt is still running, restore UI
+        if (status.running && status.phase) {
+            console.log('Restoring hunt progress:', status);
+
+            // Show progress panel
+            document.getElementById('hunt-progress').style.display = 'block';
+
+            // Reset UI to current state (will be updated by first poll)
+            resetProgressUI();
+
+            // Disable start button and show stop button
+            document.getElementById('start-hunt-btn').disabled = true;
+            document.getElementById('start-hunt-btn').querySelector('.button-text').textContent = 'Hunting in progress...';
+            document.getElementById('stop-hunt-btn').style.display = 'inline-block';
+
+            // Start polling immediately (fast 300ms)
+            huntPollingInterval = setInterval(updateHuntProgress, 300);
+
+            console.log('Hunt is still running. Progress restored.');
+        }
+    } catch (error) {
+        console.error('Failed to restore hunt progress:', error);
+    }
+}
+
+// ============ End Hunt Progress ============
+
+// Restore last active page after all definitions are loaded
+restoreActivePage();
