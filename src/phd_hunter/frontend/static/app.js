@@ -947,5 +947,280 @@ async function restoreHuntProgress() {
 
 // ============ End Hunt Progress ============
 
+// ============ Profile Page ============
+
+// In-memory paper list: [{url, title, arxiv_id, pdf_url}]
+let profilePapers = [];
+
+async function loadProfile() {
+    try {
+        const response = await fetch('/api/profile');
+        if (!response.ok) return;
+        const profile = await response.json();
+
+        // CV
+        if (profile.cv) {
+            showFileInfo('cv', profile.cv.filename);
+        } else {
+            hideFileInfo('cv');
+        }
+
+        // PS
+        if (profile.ps) {
+            showFileInfo('ps', profile.ps.filename);
+        } else {
+            hideFileInfo('ps');
+        }
+
+        // Paper links — support both old format (string array) and new format (object array)
+        profilePapers = [];
+        if (profile.paper_links && Array.isArray(profile.paper_links)) {
+            for (const item of profile.paper_links) {
+                if (typeof item === 'string') {
+                    // Old format: just a URL string
+                    profilePapers.push({ url: item, title: item, arxiv_id: '', pdf_url: '' });
+                } else if (item && typeof item === 'object') {
+                    // New format: {url, title, arxiv_id, pdf_url}
+                    profilePapers.push({
+                        url: item.url || '',
+                        title: item.title || item.url || '',
+                        arxiv_id: item.arxiv_id || '',
+                        pdf_url: item.pdf_url || ''
+                    });
+                }
+            }
+        }
+        renderPaperTags();
+
+        // Preferences
+        const prefEl = document.getElementById('profile-preferences');
+        if (prefEl && profile.preferences) {
+            prefEl.value = profile.preferences;
+        }
+    } catch (error) {
+        console.error('Failed to load profile:', error);
+    }
+}
+
+function showFileInfo(type, filename) {
+    const uploadBox = document.getElementById(`${type}-upload-box`);
+    const fileInfo = document.getElementById(`${type}-file-info`);
+    const filenameEl = document.getElementById(`${type}-filename`);
+    if (uploadBox) uploadBox.style.display = 'none';
+    if (fileInfo) fileInfo.style.display = 'flex';
+    if (filenameEl) filenameEl.textContent = filename;
+}
+
+function hideFileInfo(type) {
+    const uploadBox = document.getElementById(`${type}-upload-box`);
+    const fileInfo = document.getElementById(`${type}-file-info`);
+    if (uploadBox) uploadBox.style.display = 'block';
+    if (fileInfo) fileInfo.style.display = 'none';
+}
+
+function renderPaperTags() {
+    const container = document.getElementById('paper-tags');
+    if (!container) return;
+
+    if (profilePapers.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = profilePapers.map((paper, index) => `
+        <div class="paper-tag" data-index="${index}">
+            <span class="paper-tag-pdf">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </span>
+            <span class="paper-tag-title" title="${escapeHtml(paper.title)}">${escapeHtml(paper.title)}</span>
+            <button class="paper-tag-delete" data-index="${index}" title="Remove">×</button>
+        </div>
+    `).join('');
+
+    // Attach delete handlers
+    container.querySelectorAll('.paper-tag-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.target.dataset.index);
+            profilePapers.splice(idx, 1);
+            renderPaperTags();
+        });
+    });
+}
+
+function initProfilePage() {
+    // CV upload
+    const cvInput = document.getElementById('cv-input');
+    const cvBox = document.getElementById('cv-upload-box');
+    if (cvInput) {
+        cvInput.addEventListener('change', (e) => handleFileUpload(e.target.files[0], 'cv'));
+    }
+    setupDragDrop(cvBox, 'cv');
+
+    // PS upload
+    const psInput = document.getElementById('ps-input');
+    const psBox = document.getElementById('ps-upload-box');
+    if (psInput) {
+        psInput.addEventListener('change', (e) => handleFileUpload(e.target.files[0], 'ps'));
+    }
+    setupDragDrop(psBox, 'ps');
+
+    // Delete buttons
+    document.getElementById('cv-delete')?.addEventListener('click', () => deleteFile('cv'));
+    document.getElementById('ps-delete')?.addEventListener('click', () => deleteFile('ps'));
+
+    // Paper input — Enter to add
+    const paperInput = document.getElementById('paper-input');
+    if (paperInput) {
+        paperInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const url = paperInput.value.trim();
+                if (!url) return;
+                // Check duplicate
+                if (profilePapers.some(p => p.url === url)) {
+                    showToast('This paper is already added', 'info');
+                    paperInput.value = '';
+                    return;
+                }
+                await addPaper(url);
+                paperInput.value = '';
+            }
+        });
+    }
+
+    // Save button
+    document.getElementById('save-profile-btn')?.addEventListener('click', saveProfile);
+}
+
+async function addPaper(url) {
+    showToast('Fetching paper info from arXiv...', 'info', 2000);
+    try {
+        const response = await fetch('/api/arxiv/resolve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        const data = await response.json();
+        if (data.success) {
+            profilePapers.push({
+                url: data.url,
+                title: data.title,
+                arxiv_id: data.arxiv_id,
+                pdf_url: data.pdf_url
+            });
+            renderPaperTags();
+            showToast('Paper added', 'success');
+        } else {
+            showToast(data.error || 'Failed to resolve paper', 'error');
+        }
+    } catch (error) {
+        showToast('Error: ' + error.message, 'error');
+    }
+}
+
+function setupDragDrop(box, type) {
+    if (!box) return;
+    box.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        box.classList.add('dragover');
+    });
+    box.addEventListener('dragleave', () => {
+        box.classList.remove('dragover');
+    });
+    box.addEventListener('drop', (e) => {
+        e.preventDefault();
+        box.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) handleFileUpload(file, type);
+    });
+}
+
+async function handleFileUpload(file, type) {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+        showToast('Only PDF files are allowed', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    try {
+        const response = await fetch('/api/profile/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            showFileInfo(type, data.filename);
+            showToast(`${type.toUpperCase()} uploaded successfully`, 'success');
+        } else {
+            showToast(data.error || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        showToast('Upload error: ' + error.message, 'error');
+    }
+}
+
+async function deleteFile(type) {
+    if (!confirm(`Remove ${type.toUpperCase()} file?`)) return;
+
+    try {
+        const response = await fetch(`/api/profile/upload?type=${type}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            hideFileInfo(type);
+            showToast(`${type.toUpperCase()} removed`, 'info');
+        } else {
+            showToast(data.error || 'Delete failed', 'error');
+        }
+    } catch (error) {
+        showToast('Delete error: ' + error.message, 'error');
+    }
+}
+
+async function saveProfile() {
+    const preferences = document.getElementById('profile-preferences')?.value || '';
+
+    // paper_links now contains objects with url + title
+    const paper_links = profilePapers.map(p => ({
+        url: p.url,
+        title: p.title,
+        arxiv_id: p.arxiv_id,
+        pdf_url: p.pdf_url
+    }));
+
+    try {
+        const response = await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paper_links, preferences })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast('Profile saved successfully', 'success');
+        } else {
+            showToast('Save failed', 'error');
+        }
+    } catch (error) {
+        showToast('Save error: ' + error.message, 'error');
+    }
+}
+
+// Initialize profile page
+initProfilePage();
+loadProfile();
+
+// ============ End Profile Page ============
+
 // Restore last active page after all definitions are loaded
 restoreActivePage();

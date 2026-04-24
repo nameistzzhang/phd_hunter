@@ -1,5 +1,6 @@
 """Database models and operations."""
 
+import json
 import sqlite3
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -105,6 +106,23 @@ class Database:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_papers_professor ON papers(professor_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_papers_year ON papers(year DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_papers_s2_id ON papers(s2_paper_id)")
+
+        # Profile table - single-row singleton (id=1) storing user profile data
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS profiles (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                cv_path TEXT,
+                cv_filename TEXT,
+                cv_uploaded_at TEXT,
+                ps_path TEXT,
+                ps_filename TEXT,
+                ps_uploaded_at TEXT,
+                paper_links TEXT,
+                preferences TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
         # Apply migrations for existing databases
         self._migrate_tables()
@@ -241,6 +259,124 @@ class Database:
         cursor.execute("SELECT priority FROM professors WHERE id = ?", (professor_id,))
         row = cursor.fetchone()
         return row["priority"] if row else None
+
+    # --- Profile operations ---
+
+    def get_profile(self) -> Optional[Dict[str, Any]]:
+        """Get user profile (singleton, id=1).
+
+        Returns:
+            Profile dict or None if not set up yet.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM profiles WHERE id = 1")
+        row = cursor.fetchone()
+        if not row:
+            return None
+        prof = dict(row)
+        # Parse JSON fields
+        if isinstance(prof.get("paper_links"), str):
+            try:
+                prof["paper_links"] = json.loads(prof["paper_links"])
+            except Exception:
+                prof["paper_links"] = []
+        return prof
+
+    def update_profile(self, paper_links: Optional[List[str]] = None,
+                       preferences: Optional[str] = None) -> None:
+        """Update profile text fields (paper_links + preferences).
+
+        Creates the singleton row if it doesn't exist.
+        """
+        cursor = self.conn.cursor()
+        import json
+        paper_links_json = json.dumps(paper_links) if paper_links is not None else None
+
+        cursor.execute("SELECT id FROM profiles WHERE id = 1")
+        exists = cursor.fetchone()
+        if exists:
+            # Build dynamic UPDATE
+            fields = []
+            values = []
+            if paper_links_json is not None:
+                fields.append("paper_links = ?")
+                values.append(paper_links_json)
+            if preferences is not None:
+                fields.append("preferences = ?")
+                values.append(preferences)
+            if fields:
+                fields.append("updated_at = CURRENT_TIMESTAMP")
+                query = f"UPDATE profiles SET {', '.join(fields)} WHERE id = 1"
+                cursor.execute(query, values)
+                self.conn.commit()
+        else:
+            cursor.execute("""
+                INSERT INTO profiles (id, paper_links, preferences)
+                VALUES (1, ?, ?)
+            """, (paper_links_json, preferences))
+            self.conn.commit()
+
+    def update_profile_file(self, file_type: str, file_path: str,
+                            filename: str) -> None:
+        """Update CV or PS file info in profile.
+
+        Args:
+            file_type: 'cv' or 'ps'
+            file_path: Absolute or relative path to stored file
+            filename: Original uploaded filename
+        """
+        cursor = self.conn.cursor()
+        from datetime import datetime
+        uploaded_at = datetime.now().isoformat()
+
+        cursor.execute("SELECT id FROM profiles WHERE id = 1")
+        exists = cursor.fetchone()
+
+        if file_type == "cv":
+            cols = "cv_path = ?, cv_filename = ?, cv_uploaded_at = ?"
+            vals = (file_path, filename, uploaded_at)
+        elif file_type == "ps":
+            cols = "ps_path = ?, ps_filename = ?, ps_uploaded_at = ?"
+            vals = (file_path, filename, uploaded_at)
+        else:
+            raise ValueError(f"Invalid file_type: {file_type}")
+
+        if exists:
+            cursor.execute(f"UPDATE profiles SET {cols}, updated_at = CURRENT_TIMESTAMP WHERE id = 1", vals)
+        else:
+            if file_type == "cv":
+                cursor.execute("""
+                    INSERT INTO profiles (id, cv_path, cv_filename, cv_uploaded_at)
+                    VALUES (1, ?, ?, ?)
+                """, vals)
+            else:
+                cursor.execute("""
+                    INSERT INTO profiles (id, ps_path, ps_filename, ps_uploaded_at)
+                    VALUES (1, ?, ?, ?)
+                """, vals)
+        self.conn.commit()
+
+    def delete_profile_file(self, file_type: str) -> None:
+        """Remove CV or PS file info from profile.
+
+        Args:
+            file_type: 'cv' or 'ps'
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM profiles WHERE id = 1")
+        exists = cursor.fetchone()
+        if not exists:
+            return
+
+        if file_type == "cv":
+            cols = "cv_path = NULL, cv_filename = NULL, cv_uploaded_at = NULL"
+        elif file_type == "ps":
+            cols = "ps_path = NULL, ps_filename = NULL, ps_uploaded_at = NULL"
+        else:
+            raise ValueError(f"Invalid file_type: {file_type}")
+
+        cursor.execute(f"UPDATE profiles SET {cols}, updated_at = CURRENT_TIMESTAMP WHERE id = 1")
+        self.conn.commit()
 
     def close(self):
         """Close database connection."""

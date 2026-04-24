@@ -49,6 +49,9 @@ config/settings.yaml
 # Frontend static data (dynamically served)
 src/phd_hunter/frontend/static/data/
 
+# Uploaded files
+uploads/
+
 # Temporary files
 *.tmp
 temp/

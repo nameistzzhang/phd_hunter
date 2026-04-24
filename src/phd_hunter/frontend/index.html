@@ -34,10 +34,104 @@
     <div class="main-body">
         <!-- Left: Chat Panel (60%) - Contains 3 switchable pages -->
         <section class="chat-panel">
-            <!-- Page: Profile (blank) -->
+            <!-- Page: Profile -->
             <div class="page-container" id="page-profile">
-                <div class="blank-page">
-                    <h1>profile</h1>
+                <div class="profile-page">
+                    <div class="profile-header">
+                        <h1>Profile</h1>
+                        <p class="subtitle">Manage your application materials</p>
+                    </div>
+
+                    <div class="profile-content">
+                        <!-- Row 1: CV + PS (side by side) -->
+                        <div class="profile-row profile-files-row">
+                            <!-- CV Upload -->
+                            <div class="profile-section file-section">
+                                <div class="section-title">Curriculum Vitae (CV)</div>
+                                <div class="upload-box" id="cv-upload-box">
+                                    <input type="file" id="cv-input" accept=".pdf" class="upload-input">
+                                    <div class="upload-placeholder">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="17 8 12 3 7 8"/>
+                                            <line x1="12" y1="3" x2="12" y2="15"/>
+                                        </svg>
+                                        <span>Click or drop PDF here</span>
+                                    </div>
+                                </div>
+                                <div class="file-info" id="cv-file-info" style="display: none;">
+                                    <span class="file-info-pdf">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10 9 9 9 8 9"/>
+                                        </svg>
+                                    </span>
+                                    <span class="file-name" id="cv-filename"></span>
+                                    <span class="file-tag stored">Stored</span>
+                                    <button class="file-delete" id="cv-delete" title="Remove">×</button>
+                                </div>
+                            </div>
+
+                            <!-- Personal Statement Upload -->
+                            <div class="profile-section file-section">
+                                <div class="section-title">Personal Statement</div>
+                                <div class="upload-box" id="ps-upload-box">
+                                    <input type="file" id="ps-input" accept=".pdf" class="upload-input">
+                                    <div class="upload-placeholder">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="17 8 12 3 7 8"/>
+                                            <line x1="12" y1="3" x2="12" y2="15"/>
+                                        </svg>
+                                        <span>Click or drop PDF here</span>
+                                    </div>
+                                </div>
+                                <div class="file-info" id="ps-file-info" style="display: none;">
+                                    <span class="file-info-pdf">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10 9 9 9 8 9"/>
+                                        </svg>
+                                    </span>
+                                    <span class="file-name" id="ps-filename"></span>
+                                    <span class="file-tag stored">Stored</span>
+                                    <button class="file-delete" id="ps-delete" title="Remove">×</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Published Papers (arXiv tag input) -->
+                        <div class="profile-section">
+                            <div class="section-title">Published Papers</div>
+                            <div class="paper-input-wrapper">
+                                <input type="text" id="paper-input" class="paper-input" placeholder="Paste arXiv URL and press Enter..." autocomplete="off">
+                                <div class="paper-input-hint">Press Enter to add paper</div>
+                            </div>
+                            <div class="paper-tags" id="paper-tags">
+                                <!-- Tags injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Preferences -->
+                        <div class="profile-section">
+                            <div class="section-title">Preferences</div>
+                            <div class="form-hint">Research interests, advisor expectations, research plans, etc.</div>
+                            <textarea id="profile-preferences" class="profile-textarea" rows="6" placeholder="Describe your research interests, preferred working style, what you look for in an advisor, your research plans, or anything else you'd like professors to know..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="profile-footer">
+                        <button id="save-profile-btn" class="hunt-button">
+                            <span class="button-text">Save Changes</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

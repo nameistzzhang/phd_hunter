@@ -2,11 +2,13 @@
 """Simple API server to serve professor data as JSON for frontend."""
 
 import json
+import os
 import sqlite3
 import threading
 import time
 import sys
 import traceback
+import uuid
 from pathlib import Path
 from flask import Flask, jsonify, render_template, request
 from queue import Queue, Empty
@@ -19,12 +21,16 @@ from phd_hunter.database import Database
 from phd_hunter.utils.logger import get_logger, setup_logger
 from phd_hunter.models import Professor, University
 
+import arxiv as arxiv_lib
+
 app = Flask(__name__,
             template_folder=str(Path(__file__).parent),
             static_folder=str(Path(__file__).parent / 'static'))
 
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter.db")
 HUNT_CONFIG_PATH = str(Path(__file__).parent / "hunt_config.json")
+UPLOADS_DIR = Path(__file__).parent.parent.parent.parent / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
 
 # Default hunt configuration
 DEFAULT_HUNT_CONFIG = {
@@ -226,6 +232,167 @@ def update_priority(prof_id):
         return jsonify({'success': True, 'priority': priority})
     else:
         return jsonify({'error': 'Professor not found'}), 404
+
+
+# ========== Profile API ==========
+
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    """Get user profile."""
+    db = Database(db_path=DB_PATH)
+    profile = db.get_profile()
+    if profile is None:
+        return jsonify({
+            'cv': None,
+            'ps': None,
+            'paper_links': [],
+            'preferences': ''
+        })
+
+    return jsonify({
+        'cv': {
+            'filename': profile.get('cv_filename'),
+            'uploaded_at': profile.get('cv_uploaded_at')
+        } if profile.get('cv_filename') else None,
+        'ps': {
+            'filename': profile.get('ps_filename'),
+            'uploaded_at': profile.get('ps_uploaded_at')
+        } if profile.get('ps_filename') else None,
+        'paper_links': profile.get('paper_links') or [],
+        'preferences': profile.get('preferences') or ''
+    })
+
+
+@app.route('/api/profile', methods=['POST'])
+def update_profile():
+    """Update profile text fields."""
+    data = request.get_json()
+    db = Database(db_path=DB_PATH)
+
+    paper_links = data.get('paper_links')
+    preferences = data.get('preferences')
+
+    db.update_profile(
+        paper_links=paper_links,
+        preferences=preferences
+    )
+    return jsonify({'success': True})
+
+
+@app.route('/api/profile/upload', methods=['POST'])
+def upload_profile_file():
+    """Upload CV or PS PDF file."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    file_type = request.form.get('type')
+
+    if not file or file.filename == '':
+        return jsonify({'error': 'Empty file'}), 400
+
+    if file_type not in ('cv', 'ps'):
+        return jsonify({'error': 'Invalid type. Must be cv or ps'}), 400
+
+    # Validate file extension
+    ext = Path(file.filename).suffix.lower()
+    if ext != '.pdf':
+        return jsonify({'error': 'Only PDF files are allowed'}), 400
+
+    # Save file with UUID
+    stored_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = UPLOADS_DIR / stored_name
+    file.save(str(file_path))
+
+    # Update database
+    db = Database(db_path=DB_PATH)
+    db.update_profile_file(file_type, str(file_path), file.filename)
+
+    return jsonify({
+        'success': True,
+        'filename': file.filename,
+        'type': file_type
+    })
+
+
+@app.route('/api/profile/upload', methods=['DELETE'])
+def delete_profile_file():
+    """Delete CV or PS file."""
+    file_type = request.args.get('type')
+    if file_type not in ('cv', 'ps'):
+        return jsonify({'error': 'Invalid type. Must be cv or ps'}), 400
+
+    db = Database(db_path=DB_PATH)
+    profile = db.get_profile()
+
+    # Delete physical file
+    if profile:
+        path_key = f"{file_type}_path"
+        file_path = profile.get(path_key)
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass  # Ignore delete errors
+
+    db.delete_profile_file(file_type)
+    return jsonify({'success': True})
+
+
+# ========== arXiv Resolver API ==========
+
+@app.route('/api/arxiv/resolve', methods=['POST'])
+def resolve_arxiv():
+    """Resolve an arXiv URL to paper metadata (title, PDF URL)."""
+    data = request.get_json()
+    url = data.get('url', '').strip()
+
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+
+    # Extract arXiv ID from URL
+    # Supported formats:
+    # https://arxiv.org/abs/2401.12345
+    # https://arxiv.org/pdf/2401.12345.pdf
+    arxiv_id = None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        path = parsed.path.strip('/')
+        if path.startswith('abs/'):
+            arxiv_id = path.split('/', 1)[1]
+        elif path.startswith('pdf/'):
+            arxiv_id = path.split('/', 1)[1].replace('.pdf', '')
+        else:
+            # Try last path segment
+            arxiv_id = path.split('/')[-1].replace('.pdf', '')
+    except Exception:
+        return jsonify({'error': 'Invalid arXiv URL format'}), 400
+
+    if not arxiv_id:
+        return jsonify({'error': 'Could not extract arXiv ID from URL'}), 400
+
+    try:
+        search = arxiv_lib.Search(id_list=[arxiv_id])
+        results = list(search.results())
+        if not results:
+            return jsonify({'error': 'Paper not found on arXiv'}), 404
+
+        paper = results[0]
+        return jsonify({
+            'success': True,
+            'arxiv_id': arxiv_id,
+            'title': paper.title,
+            'url': f'https://arxiv.org/abs/{arxiv_id}',
+            'pdf_url': paper.pdf_url,
+            'authors': [a.name for a in paper.authors],
+            'year': paper.published.year,
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to fetch from arXiv: {str(e)}'}), 500
+
+
+# ========== End Profile API ==========
 
 
 @app.route('/api/stop-hunt', methods=['POST'])
@@ -618,4 +785,4 @@ if __name__ == '__main__':
     print("Starting PhD Hunter Frontend Server...")
     print(f"Database: {DB_PATH}")
     print("Open browser to: http://localhost:8080")
-    app.run(debug=True, port=8081, use_reloader=False)  # Disable reloader to share global state
+    app.run(debug=True, port=8082, use_reloader=False)  # Disable reloader to share global state
