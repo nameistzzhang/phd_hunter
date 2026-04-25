@@ -84,7 +84,7 @@ def extract_arxiv_id(raw: str) -> str:
     raise ValueError(f"Could not extract arXiv ID from: {text}")
 
 
-DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter.db")
+DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter_new.db")
 HUNT_CONFIG_PATH = str(Path(__file__).parent / "hunt_config.json")
 HOUND_CONFIG_PATH = str(Path(__file__).parent / "hound_config.json")
 UPLOADS_DIR = Path(__file__).parent.parent.parent.parent / "uploads"
@@ -1072,13 +1072,14 @@ def run_hunt_worker():
         new_professor_ids = [p['id'] for p in all_profs_after if p['id'] not in existing_ids_before]
         log_message(f"[INFO] New professor IDs for paper fetch: {len(new_professor_ids)}")
 
-        # ========== Phase 2: Fetch Papers ==========
+        # ========== Phase 2: Fetch Papers via OpenAlex ==========
         log_message("")
         log_message("=" * 70)
-        log_message("Phase 2: 从 arXiv 获取教授论文")
+        log_message("Phase 2: 从 OpenAlex 获取教授论文")
         log_message("=" * 70)
 
-        arxiv_crawler = ArxivCrawler(delay=10.0)
+        from phd_hunter.crawlers import OpenAlexCrawler
+        openalex_crawler = OpenAlexCrawler(delay=1.0)
 
         try:
             # Only fetch papers for NEWLY ADDED professors in this hunt
@@ -1119,126 +1120,104 @@ def run_hunt_worker():
                 hunt_state['papers_total'] = len(professors_from_db)
                 hunt_state['papers_completed'] = 0
 
-            # Create a persistent event loop for async homepage fetching in this phase
-            import asyncio
-            phase2_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(phase2_loop)
-
             total_papers = 0
             total_skipped = 0
 
-            try:
-                for i, prof_dict in enumerate(professors_from_db, 1):
-                    # Check for stop request
-                    if hunt_stop_event.is_set():
-                        log_message("[INFO] Stop requested during paper fetching. Exiting...")
-                        with hunt_lock:
-                            hunt_state['running'] = False
-                            hunt_state['phase'] = None
-                        break
-
-                    prof_name = prof_dict['name']
-                    prof_id = prof_dict['id']
-                    existing_s2_ids = existing_papers_by_prof.get(prof_id, set())
-
-                    log_message(f"[{i}/{len(professors_from_db)}] {prof_name}")
-
-                    # Reconstruct Professor object
-                    from phd_hunter.models import Professor
-                    prof = Professor(
-                        id=prof_id,
-                        name=prof_name,
-                        university=prof_dict['university_name'],
-                    )
-
-                    # --- Step 1: Try to get paper titles from homepage ---
-                    paper_titles = []
-                    homepage_url = prof_dict.get('homepage') or prof_dict.get('homepage_url')
-
-                    if homepage_url:
-                        from phd_hunter.crawlers.homepage_crawler import (
-                            fetch_and_summarize_homepage,
-                            load_homepage_papers,
-                        )
-
-                        # Check if we already have extracted titles
-                        paper_titles = load_homepage_papers(prof_id)
-
-                        if not paper_titles:
-                            # Fetch homepage and extract titles via LLM
-                            try:
-                                log_message(f"  [Homepage] Fetching {homepage_url}...")
-                                success = phase2_loop.run_until_complete(
-                                    fetch_and_summarize_homepage(
-                                        professor_id=prof_id,
-                                        homepage_url=homepage_url,
-                                        professor_name=prof_name,
-                                        db_path=DB_PATH,
-                                    )
-                                )
-                                if success:
-                                    paper_titles = load_homepage_papers(prof_id)
-                                    log_message(f"  [Homepage] Extracted {len(paper_titles)} paper titles")
-                                else:
-                                    log_message(f"  [Homepage] Failed to extract titles")
-                            except Exception as e:
-                                log_message(f"  [Homepage] Error: {e}")
-                                paper_titles = []
-
-                    # --- Step 2: Fetch papers by title ---
-                    if not paper_titles:
-                        log_message(f"  [arXiv] Skipped: no paper titles extracted from homepage")
-                        with hunt_lock:
-                            hunt_state['papers_completed'] = i
-                        continue
-
-                    log_message(f"  [arXiv] Searching by {len(paper_titles)} titles...")
-                    papers = arxiv_crawler.fetch_by_titles(
-                        prof,
-                        titles=paper_titles,
-                        max_papers=max_papers,
-                    )
-
-                    if papers:
-                        # Filter out already-existing papers and invalid arxiv_id
-                        new_papers = [p for p in papers if p.arxiv_id and p.arxiv_id not in existing_s2_ids]
-                        skipped_papers = len(papers) - len(new_papers)
-
-                        if skipped_papers > 0:
-                            log_message(f"[SKIP] 跳过 {skipped_papers} 篇已存在的论文")
-                            total_skipped += skipped_papers
-
-                        if new_papers:
-                            log_message(f"[OK] 找到 {len(new_papers)} 篇新论文")
-
-                            # Save NEW papers to database only
-                            for paper in new_papers:
-                                paper_data = {
-                                    's2_paper_id': paper.arxiv_id,
-                                    'title': paper.title,
-                                    'abstract': paper.abstract,
-                                    'year': paper.year,
-                                    'venue': paper.venue,
-                                    'url': paper.url,
-                                    'openaccess_pdf': paper.pdf_url,
-                                    'local_pdf_path': paper.pdf_path,
-                                }
-                                db.upsert_paper(prof_id, paper_data)
-                                total_papers += 1
-                        else:
-                            log_message(f"    [INFO] 所有论文都已存在，无需更新")
-                    else:
-                        log_message(f"    [WARN] 未找到论文")
-
-                    # Update progress
+            for i, prof_dict in enumerate(professors_from_db, 1):
+                # Check for stop request
+                if hunt_stop_event.is_set():
+                    log_message("[INFO] Stop requested during paper fetching. Exiting...")
                     with hunt_lock:
-                        hunt_state['papers_completed'] = i
+                        hunt_state['running'] = False
+                        hunt_state['phase'] = None
+                    break
 
-                    # Small delay to avoid overwhelming
-                    time.sleep(0.5)
-            finally:
-                phase2_loop.close()
-                asyncio.set_event_loop(None)
+                prof_name = prof_dict['name']
+                prof_id = prof_dict['id']
+                existing_s2_ids = existing_papers_by_prof.get(prof_id, set())
+
+                log_message(f"[{i}/{len(professors_from_db)}] {prof_name}")
+
+                # Reconstruct Professor object
+                from phd_hunter.models import Professor
+                prof = Professor(
+                    id=prof_id,
+                    name=prof_name,
+                    university=prof_dict['university_name'],
+                )
+
+                # --- Fetch papers via OpenAlex ---
+                log_message(f"  [OpenAlex] Searching {prof_name} @ {prof.university}...")
+                try:
+                    papers = openalex_crawler.fetch(prof, max_papers=max_papers)
+                except Exception as e:
+                    log_message(f"  [OpenAlex] Error: {e}")
+                    papers = []
+
+                if papers:
+                    # Filter out already-existing papers
+                    new_papers = [p for p in papers if p.arxiv_id and p.arxiv_id not in existing_s2_ids]
+                    skipped_papers = len(papers) - len(new_papers)
+
+                    if skipped_papers > 0:
+                        log_message(f"[SKIP] 跳过 {skipped_papers} 篇已存在的论文")
+                        total_skipped += skipped_papers
+
+                    if new_papers:
+                        log_message(f"[OK] 找到 {len(new_papers)} 篇新论文")
+
+                        # Save NEW papers to database
+                        for paper in new_papers:
+                            paper_data = {
+                                's2_paper_id': paper.arxiv_id,
+                                'title': paper.title,
+                                'abstract': paper.abstract,
+                                'year': paper.year,
+                                'venue': paper.venue,
+                                'url': paper.url,
+                                'openaccess_pdf': paper.pdf_url,
+                                'local_pdf_path': paper.pdf_path,
+                            }
+                            db.upsert_paper(prof_id, paper_data)
+                            total_papers += 1
+
+                        # --- Enrich abstracts from arXiv ---
+                        arxiv_ids = [p.arxiv_id for p in new_papers if p.arxiv_id]
+                        if arxiv_ids:
+                            log_message(f"  [arXiv] Enriching {len(arxiv_ids)} abstracts...")
+                            try:
+                                arxiv_crawler = ArxivCrawler(delay=3.0)
+                                arxiv_results = arxiv_crawler.fetch_by_ids(arxiv_ids)
+                                updated_count = 0
+                                for paper in new_papers:
+                                    if paper.arxiv_id and paper.arxiv_id in arxiv_results:
+                                        arxiv_paper = arxiv_results[paper.arxiv_id]
+                                        # Update if arXiv abstract is better (longer or OpenAlex was empty)
+                                        if (arxiv_paper.abstract and
+                                            len(arxiv_paper.abstract) > len(paper.abstract or '')):
+                                            db.update_paper_by_arxiv_id(
+                                                prof_id, paper.arxiv_id,
+                                                {
+                                                    'abstract': arxiv_paper.abstract,
+                                                    'openaccess_pdf': arxiv_paper.pdf_url,
+                                                }
+                                            )
+                                            updated_count += 1
+                                log_message(f"  [arXiv] Updated {updated_count} abstracts")
+                                arxiv_crawler.close()
+                            except Exception as e:
+                                log_message(f"  [arXiv] Enrichment error: {e}")
+                    else:
+                        log_message(f"    [INFO] 所有论文都已存在，无需更新")
+                else:
+                    log_message(f"    [WARN] 未找到论文")
+
+                # Update progress
+                with hunt_lock:
+                    hunt_state['papers_completed'] = i
+
+                # Small delay between professors
+                time.sleep(0.5)
 
             # Check if stopped
             if hunt_stop_event.is_set():
@@ -1249,7 +1228,7 @@ def run_hunt_worker():
                 with hunt_lock:
                     hunt_state['running'] = False
                     hunt_state['phase'] = None
-                arxiv_crawler.close()
+                openalex_crawler.close()
                 return
 
             log_message("")
@@ -1258,7 +1237,7 @@ def run_hunt_worker():
             log_message("=" * 70)
 
         finally:
-            arxiv_crawler.close()
+            openalex_crawler.close()
 
         with hunt_lock:
             hunt_state['running'] = False

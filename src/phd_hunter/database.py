@@ -640,6 +640,40 @@ class Database:
         self.conn.commit()
         return deleted
 
+    def update_paper_by_arxiv_id(
+        self,
+        professor_id: int,
+        arxiv_id: str,
+        updates: Dict[str, Any],
+    ) -> bool:
+        """Update specific fields of a paper by arxiv_id + professor_id.
+
+        Args:
+            professor_id: Professor foreign key
+            arxiv_id: arXiv paper ID
+            updates: Dict of fields to update (e.g. {'abstract': '...', 'openaccess_pdf': '...'})
+
+        Returns:
+            True if a row was updated, False otherwise.
+        """
+        if not updates:
+            return False
+
+        allowed_fields = {'title', 'abstract', 'year', 'venue', 'url', 'openaccess_pdf', 'local_pdf_path'}
+        filtered = {k: v for k, v in updates.items() if k in allowed_fields}
+        if not filtered:
+            return False
+
+        cursor = self.conn.cursor()
+        set_clause = ", ".join(f"{k} = ?" for k in filtered)
+        values = list(filtered.values()) + [arxiv_id, professor_id]
+        cursor.execute(
+            f"UPDATE papers SET {set_clause} WHERE s2_paper_id = ? AND professor_id = ?",
+            values,
+        )
+        self.conn.commit()
+        return cursor.rowcount > 0
+
     def update_professor_paper_stats(
         self,
         professor_id: int,
