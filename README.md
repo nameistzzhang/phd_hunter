@@ -283,10 +283,10 @@ python main.py stats
 
 ## ⚠️ Known Limitations
 
-1. **arXiv Coverage**: Not all professors publish on arXiv
-2. **Author Ambiguity**: arXiv author search may include name collisions
-3. **LLM Cost**: Analyzer and Scorer require LLM API calls, watch your budget
-4. **Homepage Scraping**: Some professor homepages have anti-bot mechanisms and may fail
+1. **arXiv Coverage**: Not all professors publish on arXiv.  If a homepage does not list recent papers, the system falls back to author-name search, which may still miss non-arXiv work.
+2. **Author Ambiguity** (mitigated): The primary paper-fetching flow extracts exact paper titles from the professor's homepage and searches arXiv by title, avoiding most name-collision issues.  Author-name search is only used as a fallback when the homepage lacks a publication list.
+3. **LLM Cost**: Analyzer, Scorer, and Homepage Paper Extraction all require LLM API calls.  Watch your budget.
+4. **Homepage Scraping**: Some professor homepages have anti-bot mechanisms and may fail.  When homepage fetching fails, the system falls back to author-name search.
 
 ## 📖 Documentation
 

@@ -50,13 +50,15 @@ Please return a JSON object with these exact keys:
   "email": "professor's email if found, otherwise empty string",
   "research_focus": "concise description of their current research focus (50 words max)",
   "recruiting_status": "one of: accepting / not_accepting / unknown",
-  "summary": "brief summary of the professor's research interests, recent projects, and lab direction (200 words max)"
+  "summary": "brief summary of the professor's research interests, recent projects, and lab direction (200 words max)",
+  "recent_papers": ["list", "of", "recent", "paper", "titles", "found", "on", "the", "homepage"]
 }}
 
 Rules:
 - If no email is visible, use empty string ""
 - recruiting_status: use "accepting" only if the page explicitly mentions recruiting PhD students, hiring, or open positions
-- Be concise and factual. Do not hallucinate information not present in the text."""
+- recent_papers: extract ONLY paper titles that are explicitly listed on the homepage (e.g., in a "Publications", "Papers", "Research", or "Selected Works" section). Include at most 10 most recent papers. If no papers are listed, use an empty array [].
+- Be concise and factual. Do not hallucinate information not present in the text.""
 
 
 def build_scorer_user_prompt(

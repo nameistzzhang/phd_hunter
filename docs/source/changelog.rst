@@ -21,9 +21,14 @@ Added
     * Direction Match Score (1-5): Research direction matching degree
     * Admission Difficulty Score (1-5): Admission difficulty assessment
     * Background auto-polling scoring with configurable iterations
-* **Homepage Crawler** - Selenium + LLM summary
-    * Automatically scrape professor personal homepages
+* **Homepage Crawler** - HTTP + LLM summary
+    * Automatically fetch professor personal homepages
     * AI extraction of research focus, recruiting status, content summary
+    * **Extract recent paper titles** from homepage for precise arXiv search
+* **arXiv Title Search** - Precise paper fetching by title
+    * Primary flow: extract paper titles from homepage, search arXiv by exact title
+    * Author verification on every result to prevent name collisions
+    * Fallback to author-name search when homepage lacks publication list
 * **LLM Config Modal** - Configure API Key, model, URL, temperature, etc.
 * **Chat Page Improvements**
     * User/AI avatar distinction

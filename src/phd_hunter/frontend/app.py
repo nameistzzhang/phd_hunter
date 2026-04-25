@@ -947,77 +947,129 @@ def run_hunt_worker():
                 hunt_state['papers_total'] = len(professors_from_db)
                 hunt_state['papers_completed'] = 0
 
+            # Create a persistent event loop for async homepage fetching in this phase
+            import asyncio
+            phase2_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(phase2_loop)
+
             total_papers = 0
             total_skipped = 0
 
-            for i, prof_dict in enumerate(professors_from_db, 1):
-                # Check for stop request
-                if hunt_stop_event.is_set():
-                    log_message("[INFO] Stop requested during paper fetching. Exiting...")
-                    with hunt_lock:
-                        hunt_state['running'] = False
-                        hunt_state['phase'] = None
-                    break
+            try:
+                for i, prof_dict in enumerate(professors_from_db, 1):
+                    # Check for stop request
+                    if hunt_stop_event.is_set():
+                        log_message("[INFO] Stop requested during paper fetching. Exiting...")
+                        with hunt_lock:
+                            hunt_state['running'] = False
+                            hunt_state['phase'] = None
+                        break
 
-                prof_name = prof_dict['name']
-                prof_id = prof_dict['id']
-                existing_s2_ids = existing_papers_by_prof.get(prof_id, set())
+                    prof_name = prof_dict['name']
+                    prof_id = prof_dict['id']
+                    existing_s2_ids = existing_papers_by_prof.get(prof_id, set())
 
-                log_message(f"[{i}/{len(professors_from_db)}] {prof_name}")
+                    log_message(f"[{i}/{len(professors_from_db)}] {prof_name}")
 
-                # Reconstruct Professor object
-                from phd_hunter.models import Professor
-                prof = Professor(
-                    id=prof_id,
-                    name=prof_name,
-                    university=prof_dict['university_name'],
-                )
+                    # Reconstruct Professor object
+                    from phd_hunter.models import Professor
+                    prof = Professor(
+                        id=prof_id,
+                        name=prof_name,
+                        university=prof_dict['university_name'],
+                    )
 
-                # Fetch papers from arXiv
-                papers = arxiv_crawler.fetch(
-                    prof,
-                    max_papers=max_papers,
-                    download=False,
-                    pdf_dir=None,
-                )
+                    # --- Step 1: Try to get paper titles from homepage ---
+                    paper_titles = []
+                    homepage_url = prof_dict.get('homepage') or prof_dict.get('homepage_url')
 
-                if papers:
-                    # Filter out already-existing papers and invalid arxiv_id
-                    new_papers = [p for p in papers if p.arxiv_id and p.arxiv_id not in existing_s2_ids]
-                    skipped_papers = len(papers) - len(new_papers)
+                    if homepage_url:
+                        from phd_hunter.crawlers.homepage_crawler import (
+                            fetch_and_summarize_homepage,
+                            load_homepage_papers,
+                        )
 
-                    if skipped_papers > 0:
-                        log_message(f"[SKIP] 跳过 {skipped_papers} 篇已存在的论文")
-                        total_skipped += skipped_papers
+                        # Check if we already have extracted titles
+                        paper_titles = load_homepage_papers(prof_id)
 
-                    if new_papers:
-                        log_message(f"[OK] 找到 {len(new_papers)} 篇新论文")
+                        if not paper_titles:
+                            # Fetch homepage and extract titles via LLM
+                            try:
+                                log_message(f"  [Homepage] Fetching {homepage_url}...")
+                                success = phase2_loop.run_until_complete(
+                                    fetch_and_summarize_homepage(
+                                        professor_id=prof_id,
+                                        homepage_url=homepage_url,
+                                        professor_name=prof_name,
+                                        db_path=DB_PATH,
+                                    )
+                                )
+                                if success:
+                                    paper_titles = load_homepage_papers(prof_id)
+                                    log_message(f"  [Homepage] Extracted {len(paper_titles)} paper titles")
+                                else:
+                                    log_message(f"  [Homepage] Failed to extract titles")
+                            except Exception as e:
+                                log_message(f"  [Homepage] Error: {e}")
+                                paper_titles = []
 
-                        # Save NEW papers to database only
-                        for paper in new_papers:
-                            paper_data = {
-                                's2_paper_id': paper.arxiv_id,
-                                'title': paper.title,
-                                'abstract': paper.abstract,
-                                'year': paper.year,
-                                'venue': paper.venue,
-                                'url': paper.url,
-                                'openaccess_pdf': paper.pdf_url,
-                                'local_pdf_path': paper.pdf_path,
-                            }
-                            db.upsert_paper(prof_id, paper_data)
-                            total_papers += 1  # Increment for each successfully saved paper
+                    # --- Step 2: Fetch papers by title (or fall back to author search) ---
+                    if paper_titles:
+                        log_message(f"  [arXiv] Searching by {len(paper_titles)} titles...")
+                        papers = arxiv_crawler.fetch_by_titles(
+                            prof,
+                            titles=paper_titles,
+                            max_papers=max_papers,
+                        )
                     else:
-                        log_message(f"    [INFO] 所有论文都已存在，无需更新")
-                else:
-                    log_message(f"    [WARN] 未找到论文")
+                        log_message(f"  [arXiv] No titles found, falling back to author search")
+                        papers = arxiv_crawler.fetch(
+                            prof,
+                            max_papers=max_papers,
+                            download=False,
+                            pdf_dir=None,
+                        )
 
-                # Update progress: number of professors processed so far
-                with hunt_lock:
-                    hunt_state['papers_completed'] = i
+                    if papers:
+                        # Filter out already-existing papers and invalid arxiv_id
+                        new_papers = [p for p in papers if p.arxiv_id and p.arxiv_id not in existing_s2_ids]
+                        skipped_papers = len(papers) - len(new_papers)
 
-                # Small delay to avoid overwhelming
-                time.sleep(0.5)
+                        if skipped_papers > 0:
+                            log_message(f"[SKIP] 跳过 {skipped_papers} 篇已存在的论文")
+                            total_skipped += skipped_papers
+
+                        if new_papers:
+                            log_message(f"[OK] 找到 {len(new_papers)} 篇新论文")
+
+                            # Save NEW papers to database only
+                            for paper in new_papers:
+                                paper_data = {
+                                    's2_paper_id': paper.arxiv_id,
+                                    'title': paper.title,
+                                    'abstract': paper.abstract,
+                                    'year': paper.year,
+                                    'venue': paper.venue,
+                                    'url': paper.url,
+                                    'openaccess_pdf': paper.pdf_url,
+                                    'local_pdf_path': paper.pdf_path,
+                                }
+                                db.upsert_paper(prof_id, paper_data)
+                                total_papers += 1
+                        else:
+                            log_message(f"    [INFO] 所有论文都已存在，无需更新")
+                    else:
+                        log_message(f"    [WARN] 未找到论文")
+
+                    # Update progress
+                    with hunt_lock:
+                        hunt_state['papers_completed'] = i
+
+                    # Small delay to avoid overwhelming
+                    time.sleep(0.5)
+            finally:
+                phase2_loop.close()
+                asyncio.set_event_loop(None)
 
             # Check if stopped
             if hunt_stop_event.is_set():
