@@ -92,6 +92,11 @@ Core Components
    - Direction Match: Research direction matching degree
    - Admission Difficulty: Admission difficulty assessment
 
+   The scorer daemon uses a persistent event loop within its background
+   thread to avoid asyncio lifecycle issues when scoring multiple
+   professors.  It polls every 30 seconds and spaces out API calls with
+   a 5-second delay between professors to respect upstream rate limits.
+
 6. **Database** (database.py)
 
    SQLite database containing:
