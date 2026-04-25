@@ -172,8 +172,14 @@ python<span class="w"> </span>main.py<span class="w"> </span>stats
 </pre></div>
 </div>
 <p>Web interface mode:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start Flask server</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start Flask server (Linux / macOS)</span>
 <span class="nv">PYTHONPATH</span><span class="o">=</span>src<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>phd_hunter.frontend.app
+
+<span class="c1"># Windows (Command Prompt):</span>
+<span class="nb">set</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span>src<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>phd_hunter.frontend.app
+
+<span class="c1"># Windows (PowerShell):</span>
+<span class="nv">$env</span>:PYTHONPATH<span class="o">=</span><span class="s2">&quot;src&quot;</span><span class="p">;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>phd_hunter.frontend.app
 
 <span class="c1"># Then open http://localhost:8080 in browser</span>
 </pre></div>

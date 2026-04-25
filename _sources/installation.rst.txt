@@ -20,16 +20,13 @@ Step-by-Step Installation
       git clone https://github.com/your-org/phd-hunter.git
       cd phd-hunter
 
-2. **Create virtual environment**
+2. **Install dependencies**
 
    Using **uv** (recommended):
 
    .. code-block:: bash
 
       uv sync
-
-      # Activate virtual environment (Windows PowerShell)
-      .venv\Scripts\Activate.ps1
 
    Using **pip**:
 
@@ -38,6 +35,12 @@ Step-by-Step Installation
       python -m venv .venv
       .venv\Scripts\activate  # Windows
       pip install -e .
+
+   Using **uv pip**:
+
+   .. code-block:: bash
+
+      uv pip install -e .
 
 3. **Install browser driver**
 

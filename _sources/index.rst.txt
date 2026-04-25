@@ -108,8 +108,14 @@ Installation Steps
 
    .. code-block:: bash
 
-      # Start Flask server
+      # Start Flask server (Linux / macOS)
       PYTHONPATH=src python -m phd_hunter.frontend.app
+
+      # Windows (Command Prompt):
+      set PYTHONPATH=src && python -m phd_hunter.frontend.app
+
+      # Windows (PowerShell):
+      $env:PYTHONPATH="src"; python -m phd_hunter.frontend.app
 
       # Then open http://localhost:8080 in browser
 
