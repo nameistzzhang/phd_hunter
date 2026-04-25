@@ -1,37 +1,37 @@
 Installation Guide
 ==================
 
-本指南帮助你在本地设置 PhD Hunter。
+This guide helps you set up PhD Hunter locally.
 
-前提条件
---------
+Prerequisites
+-------------
 
-* **Python**: 3.10 或更高
-* **uv**: 推荐的包管理器（或 pip）
-* **浏览器**: Chrome 或 Chromium（用于 Selenium）
+* **Python**: 3.10 or higher
+* **uv**: Recommended package manager (or pip)
+* **Browser**: Chrome or Chromium (for Selenium)
 
-分步安装
---------
+Step-by-Step Installation
+-------------------------
 
-1. **克隆仓库**
+1. **Clone the repository**
 
    .. code-block:: bash
 
       git clone https://github.com/your-org/phd-hunter.git
       cd phd-hunter
 
-2. **创建虚拟环境**
+2. **Create virtual environment**
 
-   使用 **uv** (推荐):
+   Using **uv** (recommended):
 
    .. code-block:: bash
 
       uv sync
 
-      # 激活虚拟环境 (Windows PowerShell)
+      # Activate virtual environment (Windows PowerShell)
       .venv\Scripts\Activate.ps1
 
-   使用 **pip**:
+   Using **pip**:
 
    .. code-block:: bash
 
@@ -39,57 +39,67 @@ Installation Guide
       .venv\Scripts\activate  # Windows
       pip install -e .
 
-3. **安装浏览器驱动**
+3. **Install browser driver**
 
-   PhD Hunter 使用 Selenium 进行网页爬取。需要 Chrome/Chromium 和 ChromeDriver：
+   PhD Hunter uses Selenium for web crawling. Chrome/Chromium and ChromeDriver are required:
 
-   - **方式 A: 自动安装** (推荐)
+   - **Option A: Automatic installation** (recommended)
 
      .. code-block:: bash
 
         uv run pip install webdriver-manager
 
-   - **方式 B: 手动安装**
+   - **Option B: Manual installation**
 
-     1. 从 https://chromedriver.chromium.org/ 下载 ChromeDriver
-     2. 将 ChromeDriver 添加到 PATH
+     1. Download ChromeDriver from https://chromedriver.chromium.org/
+     2. Add ChromeDriver to PATH
 
-4. **验证安装**
+4. **Configure LLM**
 
-   运行快速检查：
+   Copy the example config and fill in your API key:
+
+   .. code-block:: bash
+
+      cp src/phd_hunter/frontend/hound_config.example.json src/phd_hunter/frontend/hound_config.json
+
+   Edit ``hound_config.json`` with your API key, model, and provider settings.
+
+5. **Verify installation**
+
+   Run a quick check:
 
    .. code-block:: bash
 
       python main.py --help
 
-   应该看到可用的命令列表。
+   You should see a list of available commands.
 
-故障排除
---------
+Troubleshooting
+---------------
 
-**问题**: ``ModuleNotFoundError: No module named 'phd_hunter'``
+**Issue**: ``ModuleNotFoundError: No module named 'phd_hunter'``
 
-**解决**: 确认已安装包：
+**Solution**: Make sure the package is installed:
 
 .. code-block:: bash
 
    pip install -e .
 
-**问题**: Selenium WebDriver 错误
+**Issue**: Selenium WebDriver error
 
-**解决**: 确保 Chrome/Chromium 已安装且 ChromeDriver 版本匹配。
+**Solution**: Ensure Chrome/Chromium is installed and ChromeDriver version matches.
 
-**问题**: 在 Windows 上权限错误
+**Issue**: Permission error on Windows
 
-**解决**: 以管理员身份运行 PowerShell 或修改执行策略：
+**Solution**: Run PowerShell as administrator or modify execution policy:
 
 .. code-block:: bash
 
    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
-下一步
-------
+Next Steps
+----------
 
-- 阅读 :doc:`architecture` 了解架构
-- 学习 :doc:`crawlers` 了解爬虫
-- 查看 :doc:`api` 了解 API 参考
+- Read :doc:`architecture` to understand the architecture
+- Learn :doc:`crawlers` to understand crawlers
+- Check :doc:`api` for API reference

@@ -1,36 +1,36 @@
 Contributing
 ============
 
-感谢你考虑为 PhD Hunter 做贡献！本文档概述了开发流程。
+Thank you for considering contributing to PhD Hunter! This document outlines the development workflow.
 
-快速开始
---------
+Quick Start
+-----------
 
-1. **Fork 并克隆**
+1. **Fork and clone**
 
    .. code-block:: bash
 
       git clone https://github.com/your-username/phd-hunter.git
       cd phd-hunter
 
-2. **设置开发环境**
+2. **Set up development environment**
 
    .. code-block:: bash
 
       uv sync
 
-3. **创建分支**
+3. **Create a branch**
 
    .. code-block:: bash
 
       git checkout -b feature/my-feature
 
-开发流程
---------
+Development Workflow
+--------------------
 
-1. **编写代码**
+1. **Write code**
 
-   遵循 PEP 8，使用类型提示。
+   Follow PEP 8, use type hints.
 
    .. code-block:: python
 
@@ -43,22 +43,22 @@ Contributing
           """Search for a professor by name."""
           ...
 
-2. **运行测试**
+2. **Run tests**
 
    .. code-block:: bash
 
       python -m pytest tests/ -v
 
-3. **代码格式化**
+3. **Code formatting**
 
    .. code-block:: bash
 
       uv run black .
       uv run ruff check .
 
-4. **提交**
+4. **Commit**
 
-   遵循 conventional commits:
+   Follow conventional commits:
 
    .. code-block:: text
 
@@ -66,61 +66,61 @@ Contributing
       fix: handle professor not found
       docs: update installation guide
 
-代码规范
---------
+Code Standards
+--------------
 
-**Python**: PEP 8, 88 字符行限制
+**Python**: PEP 8, 88 character line limit
 
-**类型提示**: 所有公开函数必需
+**Type hints**: Required for all public functions
 
-**Docstrings**: Google 风格
+**Docstrings**: Google style
 
-**Imports**: 标准库 → 第三方 → 本地
+**Imports**: stdlib -> third-party -> local
 
-添加功能
---------
+Adding Features
+---------------
 
-1. **添加新爬虫**
+1. **Add new crawler**
 
-   - 创建 ``crawlers/newsource.py``
-   - 继承 ``BaseCrawler``
-   - 实现 ``fetch()`` 方法
-   - 在 ``crawlers/__init__.py`` 注册
-   - 在 ``main.py`` 添加命令
+   - Create ``crawlers/newsource.py``
+   - Inherit ``BaseCrawler``
+   - Implement ``fetch()`` method
+   - Register in ``crawlers/__init__.py``
+   - Add command in ``main.py``
 
-2. **修改 CLI**
+2. **Modify CLI**
 
-   在 ``main.py`` 中添加新的子命令和参数。
+   Add new subcommands and arguments in ``main.py``.
 
-文档
-----
+Documentation
+-------------
 
-构建文档：
+Build documentation:
 
 .. code-block:: bash
 
    cd docs
    make html
 
-提交代码时同时更新文档。
+Update documentation when submitting code.
 
-Pull Request 检查清单
----------------------
+Pull Request Checklist
+----------------------
 
-- [ ] 代码符合规范
-- [ ] 测试通过
-- [ ] 类型提示完整
-- [ ] Docstrings 已更新
-- [ ] 文档已更新
-- [ ] CHANGELOG 已更新
+- [ ] Code follows standards
+- [ ] Tests pass
+- [ ] Type hints are complete
+- [ ] Docstrings updated
+- [ ] Documentation updated
+- [ ] CHANGELOG updated
 
-获取帮助
---------
+Getting Help
+------------
 
 - Issues: https://github.com/your-org/phd-hunter/issues
-- 邮箱: team@phdhunter.dev
+- Email: team@phdhunter.dev
 
-许可证
-------
+License
+-------
 
-MIT License - 详见 ``LICENSE`` 文件。
+MIT License - see ``LICENSE`` file.

@@ -1,36 +1,37 @@
 Crawlers
 ========
 
-本模块负责从学术来源获取数据。此外，项目还包含一个 Web 前端界面用于数据展示和交互。
+This module is responsible for fetching data from academic sources. Additionally, the project includes a web frontend interface for data display and interaction.
 
-概述
-----
+Overview
+--------
 
-爬虫负责从不同来源获取数据：
+Crawlers fetch data from different sources:
 
-* 从 CSRankings 获取教授列表
-* 从 arXiv 搜索教授发表的论文
+* Get professor lists from CSRankings
+* Search for papers published by professors from arXiv
+* Scrape professor homepages for AI summary
 
-所有爬虫遵循速率限制并包含重试逻辑。
+All crawlers follow rate limits and include retry logic.
 
 .. note::
-   Web 前端部分见 :doc:`architecture` 中的"Web 前端界面"章节，
-   或直接查看 ``src/phd_hunter/frontend/`` 目录下的 Flask 应用代码。
+   For the web frontend section, see the "Web Frontend" chapter in :doc:`architecture`,
+   or check the Flask application code in ``src/phd_hunter/frontend/`` directory.
 
 CSRankings Crawler
 ------------------
 
-**文件**: ``crawlers/csrankings.py``
+**File**: ``crawlers/csrankings.py``
 
-从 https://csrankings.org 提取教授数据。
+Extracts professor data from https://csrankings.org.
 
-功能：
+Features:
 
-- 选择特定机构和 CS 子领域
-- 提取教授姓名、主页和 affiliations
-- 使用 Selenium 处理动态页面内容
+* Select specific institutions and CS sub-areas
+* Extract professor names, homepages, and affiliations
+* Use Selenium to handle dynamic page content
 
-使用：
+Usage:
 
 .. code-block:: python
 
@@ -42,29 +43,29 @@ CSRankings Crawler
        region="world",
        max_professors=5
    )
-   # 返回 University 和 Professor 对象列表
+   # Returns lists of University and Professor objects
 
-提取的数据：
+Extracted data:
 
-- 大学名称、排名、分数
-- 教授姓名
-- 大学 URL
-- 教授主页（从排名页面提取）
+* University name, rank, score
+* Professor name
+* University URL
+* Professor homepage (extracted from ranking page)
 
 arXiv Crawler
 -------------
 
-**文件**: ``crawlers/arxiv_crawler.py``
+**File**: ``crawlers/arxiv_crawler.py``
 
-按作者从 arXiv 搜索论文。
+Search papers from arXiv by author.
 
-功能：
+Features:
 
-- 按作者姓名搜索论文
-- 按提交日期排序（最新的优先）
-- 返回论文元数据（标题、作者、摘要、年份、PDF 链接）
+* Search papers by author name
+* Sort by submission date (newest first)
+* Return paper metadata (title, authors, abstract, year, PDF link)
 
-使用：
+Usage:
 
 .. code-block:: python
 
@@ -74,71 +75,100 @@ arXiv Crawler
    crawler = ArxivCrawler()
    prof = Professor(name="Yangqiu Song")
    papers = crawler.fetch(prof, max_papers=10)
-   # 返回 Paper 对象列表
+   # Returns list of Paper objects
 
-提取的数据：
+Extracted data:
 
-- 论文标题
-- 作者列表
-- 摘要
-- 发表年份
-- arXiv ID
-- PDF URL
+* Paper title
+* Author list
+* Abstract
+* Publication year
+* arXiv ID
+* PDF URL
 
-配置
-----
+Homepage Crawler
+----------------
 
-当前配置通过命令行参数传递。关键参数：
+**File**: ``crawlers/homepage_crawler.py``
+
+Scrape professor homepages and generate AI summaries.
+
+Features:
+
+* Use Selenium to open professor homepage
+* Extract page content
+* Use LLM to generate summary (research focus, recruiting status, content summary)
+
+Usage:
+
+.. code-block:: python
+
+   from phd_hunter.crawlers.homepage_crawler import fetch_and_summarize_homepage
+
+   success = await fetch_and_summarize_homepage(
+       professor_id=1,
+       homepage_url="https://cs.stanford.edu/~prof/",
+       professor_name="John Doe",
+       db_path="phd_hunter.db"
+   )
+
+Configuration
+-------------
+
+Current configuration is passed via command line parameters. Key parameters:
 
 .. code-block:: text
 
    CSRankingsCrawler:
-     --headless / --no-headless   # 无头模式
-     --timeout 30                 # 超时（秒）
-     --max-professors 5          # 每校最大教授数
+     --headless / --no-headless   # Headless mode
+     --timeout 30                 # Timeout (seconds)
+     --max-professors 5           # Max professors per university
 
    ArxivCrawler:
-     --delay 1.0                 # 请求间隔（秒）
-     --max-papers 10             # 每位教授最大论文数
+     --delay 1.0                  # Request interval (seconds)
+     --max-papers 10              # Max papers per professor
 
-缓存
-----
+   HomepageCrawler:
+     Requires LLM configuration in hound_config.json
 
-所有爬虫结果被缓存以避免冗余请求：
+Caching
+-------
 
-- **缓存位置**: 内存缓存（进程内）
-- **缓存键**: 参数 hash
-- **有效期**: 默认 1 天
+All crawler results are cached to avoid redundant requests:
 
-速率限制
---------
+* **Cache location**: Memory cache (in-process)
+* **Cache key**: Parameter hash
+* **TTL**: Default 1 day
 
-为尊重数据源：
+Rate Limiting
+-------------
 
-- 请求之间自动延时
-- arXiv: 默认 1 秒间隔（可配置）
+To respect data sources:
 
-错误处理
---------
+* Automatic delay between requests
+* arXiv: Default 1 second interval (configurable)
 
-爬虫处理：
+Error Handling
+--------------
 
-- 网络超时（重试）
-- 页面布局变化（容错处理）
-- 数据缺失（返回部分结果）
+Crawlers handle:
 
-添加新爬虫
-----------
+* Network timeouts (retry)
+* Page layout changes (fault tolerance)
+* Missing data (return partial results)
 
-添加新数据源：
+Adding New Crawlers
+-------------------
 
-1. 创建 ``crawlers/newsource.py``
-2. 继承 ``BaseCrawler``
-3. 实现 ``fetch()`` 方法
-4. 在 ``crawlers/__init__.py`` 中注册
-5. 在 ``main.py`` 中添加命令
+To add a new data source:
 
-示例：
+1. Create ``crawlers/newsource.py``
+2. Inherit ``BaseCrawler``
+3. Implement ``fetch()`` method
+4. Register in ``crawlers/__init__.py``
+5. Add command in ``main.py``
+
+Example:
 
 .. code-block:: python
 
@@ -146,11 +176,11 @@ arXiv Crawler
 
    class DBLPCrawler(BaseCrawler):
        def fetch(self, query: str):
-           # 实现爬取逻辑
+           # Implement crawling logic
            pass
 
-参见
-----
+See Also
+--------
 
 - :doc:`architecture`
 - :doc:`api`
