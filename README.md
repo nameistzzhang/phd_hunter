@@ -44,10 +44,12 @@ git clone <repository-url>
 cd phd-hunter
 
 # 2. Install dependencies
+# Using uv (recommended):
 uv sync
-
-# Or using pip
+# Or using pip:
 pip install -e .
+# Or using uv pip:
+uv pip install -e .
 ```
 
 ### ⚠️ Required Configuration
@@ -102,7 +104,15 @@ python main.py stats
 
 ```bash
 # Start Flask Web Server (default http://localhost:8080)
+
+# Linux / macOS:
 PYTHONPATH=src python -m phd_hunter.frontend.app
+
+# Windows (Command Prompt):
+set PYTHONPATH=src && python -m phd_hunter.frontend.app
+
+# Windows (PowerShell):
+$env:PYTHONPATH="src"; python -m phd_hunter.frontend.app
 ```
 
 Then open http://localhost:8080 in your browser:
