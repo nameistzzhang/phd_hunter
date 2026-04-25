@@ -89,7 +89,15 @@ Installation Steps
       .venv\Scripts\activate  # Windows
       pip install -e .
 
-3. **Run the application**
+3. **Install api_infra** (REQUIRED for LLM features)
+
+   .. code-block:: bash
+
+      cd src/phd_hunter/api_infra
+      pip install -e .
+      cd ../../..
+
+4. **Run the application**
 
    Command line mode:
 

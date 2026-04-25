@@ -50,6 +50,11 @@ uv sync
 pip install -e .
 # Or using uv pip:
 uv pip install -e .
+
+# 3. Install api_infra (REQUIRED for LLM features)
+cd src/phd_hunter/api_infra
+pip install -e .
+cd ../../..
 ```
 
 ### ⚠️ Required Configuration
