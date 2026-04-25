@@ -20,7 +20,7 @@ class ScorerDaemon:
     def __init__(
         self,
         db_path: str = "phd_hunter.db",
-        poll_interval: int = 10,
+        poll_interval: int = 30,
         max_batch_per_cycle: int = 1,
     ):
         """Initialize the scorer daemon.
@@ -88,19 +88,37 @@ class ScorerDaemon:
         }
 
     def _run(self) -> None:
-        """Main daemon loop."""
+        """Main daemon loop with a persistent event loop.
+
+        We create one event loop per daemon thread and reuse it across
+        scoring cycles.  This avoids the "event loop closed" errors that
+        can occur when asyncio.run() is called repeatedly in a background
+        thread (each run creates and tears down a loop, and any
+        AsyncClient bound to the old loop becomes unusable).
+        """
         print(f"[ScorerDaemon] Polling every {self.poll_interval}s, "
               f"max {self.max_batch_per_cycle} profs/cycle.")
 
-        while not self._stop_event.is_set():
-            try:
-                self._process_cycle()
-            except Exception as e:
-                print(f"[ScorerDaemon] Cycle error: {e}")
-                traceback.print_exc()
+        # Create a single event loop for this daemon thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-            # Sleep with stop check
-            self._stop_event.wait(self.poll_interval)
+        try:
+            while not self._stop_event.is_set():
+                try:
+                    self._process_cycle()
+                except Exception as e:
+                    print(f"[ScorerDaemon] Cycle error: {e}")
+                    traceback.print_exc()
+
+                # Sleep with stop check
+                self._stop_event.wait(self.poll_interval)
+        finally:
+            try:
+                loop.close()
+            except Exception:
+                pass
+            asyncio.set_event_loop(None)
 
         print("[ScorerDaemon] Stopped.")
 
@@ -138,8 +156,9 @@ class ScorerDaemon:
                 print(f"[ScorerDaemon] Scoring: {name} ({prof['university_name']}) — {prof['total_papers']} papers")
 
                 try:
-                    # Run async scorer in sync context
-                    result = asyncio.run(
+                    # Run async scorer in the persistent event loop
+                    loop = asyncio.get_event_loop()
+                    result = loop.run_until_complete(
                         score_professor(
                             professor_id=prof_id,
                             db_path=self.db_path,
@@ -162,9 +181,9 @@ class ScorerDaemon:
 
                 self.stats["current_professor"] = None
 
-                # Small delay between professors
+                # Longer delay between professors to avoid API rate limiting
                 if not self._stop_event.is_set():
-                    time.sleep(1)
+                    time.sleep(5)
 
         finally:
             if 'db' in dir() and db:
@@ -180,7 +199,7 @@ _daemon_instance: Optional[ScorerDaemon] = None
 
 def get_daemon(
     db_path: str = "phd_hunter.db",
-    poll_interval: int = 10,
+    poll_interval: int = 30,
 ) -> ScorerDaemon:
     """Get or create the global scorer daemon."""
     global _daemon_instance
