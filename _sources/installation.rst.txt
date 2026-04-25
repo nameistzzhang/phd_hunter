@@ -42,7 +42,15 @@ Step-by-Step Installation
 
       uv pip install -e .
 
-3. **Install browser driver**
+3. **Install api_infra** (REQUIRED for LLM features)
+
+   .. code-block:: bash
+
+      cd src/phd_hunter/api_infra
+      pip install -e .
+      cd ../../..
+
+4. **Install browser driver**
 
    PhD Hunter uses Selenium for web crawling. Chrome/Chromium and ChromeDriver are required:
 
@@ -57,7 +65,7 @@ Step-by-Step Installation
      1. Download ChromeDriver from https://chromedriver.chromium.org/
      2. Add ChromeDriver to PATH
 
-4. **Configure LLM**
+5. **Configure LLM**
 
    Copy the example config and fill in your API key:
 

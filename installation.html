@@ -118,6 +118,13 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </pre></div>
 </div>
 </li>
+<li><p><strong>Install api_infra</strong> (REQUIRED for LLM features)</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>src/phd_hunter/api_infra
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+<span class="nb">cd</span><span class="w"> </span>../../..
+</pre></div>
+</div>
+</li>
 <li><p><strong>Install browser driver</strong></p>
 <p>PhD Hunter uses Selenium for web crawling. Chrome/Chromium and ChromeDriver are required:</p>
 <ul>
@@ -141,6 +148,8 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </div>
 <p>Edit <code class="docutils literal notranslate"><span class="pre">hound_config.json</span></code> with your API key, model, and provider settings.</p>
 </li>
+</ol>
+<ol class="arabic" start="5">
 <li><p><strong>Verify installation</strong></p>
 <p>Run a quick check:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>main.py<span class="w"> </span>--help
