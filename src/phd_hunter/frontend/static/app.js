@@ -443,15 +443,20 @@ function openProfessor(profId) {
         </div>
 
         <div class="section">
-            <div class="section-title">Metrics</div>
+            <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+                Metrics
+                <button class="btn-rescore" onclick="rescoreProfessor(${prof.id})" id="rescore-btn-${prof.id}">
+                    <span class="btn-text">&#x21bb; Rescore</span>
+                </button>
+            </div>
             <div class="metrics-grid">
                 <div class="metric-box">
                     <div class="metric-label">Direction Match</div>
-                    <div class="metric-value">${prof.direction_match_score || '-'}/5</div>
+                    <div class="metric-value" id="metric-dm-${prof.id}">${prof.direction_match_score || '-'}/5</div>
                 </div>
                 <div class="metric-box">
                     <div class="metric-label">Admission Difficulty</div>
-                    <div class="metric-value">${prof.admission_difficulty_score || '-'}/5</div>
+                    <div class="metric-value" id="metric-ad-${prof.id}">${prof.admission_difficulty_score || '-'}/5</div>
                 </div>
             </div>
         </div>
@@ -493,10 +498,16 @@ function openProfessor(profId) {
 
         <div class="section">
             <div class="section-title">Papers (${(prof.papers || []).length})</div>
+            <div id="papers-list">
             ${prof.papers && prof.papers.length > 0
                 ? prof.papers.map(paper => `
-                    <div class="paper-item">
-                        <div class="paper-title">${paper.url ? `<a href="${escapeHtml(paper.url)}" target="_blank" class="paper-title-link">${escapeHtml(paper.title)}</a>` : escapeHtml(paper.title)}</div>
+                    <div class="paper-item" data-paper-id="${paper.id}">
+                        <div class="paper-header">
+                            <div class="paper-title">${paper.url ? `<a href="${escapeHtml(paper.url)}" target="_blank" class="paper-title-link">${escapeHtml(paper.title)}</a>` : escapeHtml(paper.title)}</div>
+                            <button class="paper-delete-btn" onclick="deletePaper(${prof.id}, ${paper.id}, this)" title="Delete paper">
+                                &#x2715;
+                            </button>
+                        </div>
                         <div class="paper-meta">
                             <span>📅 ${paper.year || 'N/A'}</span>
                             ${paper.venue ? `<span>📍 ${escapeHtml(paper.venue)}</span>` : ''}
@@ -511,10 +522,130 @@ function openProfessor(profId) {
                 `).join('')
                 : '<p style="color: var(--text-muted); font-size: 13px;">No papers yet</p>'
             }
+            </div>
+            <div class="add-paper-row">
+                <input type="text" id="add-paper-input-${prof.id}" class="add-paper-input" placeholder="Paste arXiv URL..." />
+                <button class="btn-add-paper" onclick="addPaper(${prof.id})">Add</button>
+            </div>
         </div>
     `;
 
     document.getElementById('modal-overlay').classList.add('active');
+}
+
+// ========== Rescore ==========
+async function rescoreProfessor(profId) {
+    const btn = document.getElementById('rescore-btn-' + profId);
+    if (!btn) return;
+
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = 'Rescoring...';
+
+    try {
+        const resp = await fetch(`/api/professor/${profId}/rescore`, { method: 'POST' });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            showToast('Rescored successfully! DM=' + data.direction_match + ' AD=' + data.admission_difficulty, 'success');
+            // Update scores in modal
+            const dmEl = document.getElementById('metric-dm-' + profId);
+            const adEl = document.getElementById('metric-ad-' + profId);
+            if (dmEl) dmEl.textContent = (data.direction_match || '-') + '/5';
+            if (adEl) adEl.textContent = (data.admission_difficulty || '-') + '/5';
+            // Also update the professor card
+            const prof = professors.find(p => p.id === profId);
+            if (prof) {
+                prof.direction_match_score = data.direction_match;
+                prof.admission_difficulty_score = data.admission_difficulty;
+            }
+            renderProfessors();
+        } else {
+            showToast(data.error || 'Rescoring failed', 'error');
+        }
+    } catch (e) {
+        showToast('Rescoring failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.querySelector('.btn-text').textContent = '\u21bb Rescore';
+    }
+}
+
+// ========== Add Paper ==========
+async function addPaper(profId) {
+    const input = document.getElementById('add-paper-input-' + profId);
+    if (!input) return;
+
+    const url = input.value.trim();
+    if (!url) {
+        showToast('Please enter an arXiv URL', 'error');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/professor/${profId}/paper`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            showToast('Paper added: ' + data.paper.title, 'success');
+            input.value = '';
+            // Refresh modal
+            await refreshProfessorModal(profId);
+        } else {
+            showToast(data.error || (data.detail ? data.detail : 'Failed to add paper'), 'error');
+        }
+    } catch (e) {
+        showToast('Failed to add paper: ' + e.message, 'error');
+    }
+}
+
+// ========== Delete Paper ==========
+async function deletePaper(profId, paperId, btnEl) {
+    if (!confirm('Delete this paper?')) return;
+
+    try {
+        const resp = await fetch(`/api/professor/${profId}/paper/${paperId}`, {
+            method: 'DELETE',
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            showToast('Paper deleted', 'success');
+            // Remove from DOM
+            const item = btnEl.closest('.paper-item');
+            if (item) item.remove();
+            // Also update the professor card count
+            const prof = professors.find(p => p.id === profId);
+            if (prof && prof.papers) {
+                prof.papers = prof.papers.filter(p => p.id !== paperId);
+            }
+        } else {
+            showToast(data.error || 'Failed to delete paper', 'error');
+        }
+    } catch (e) {
+        showToast('Failed to delete paper: ' + e.message, 'error');
+    }
+}
+
+// ========== Refresh Modal ==========
+async function refreshProfessorModal(profId) {
+    try {
+        const resp = await fetch(`/api/professor/${profId}`);
+        if (!resp.ok) return;
+        const freshProf = await resp.json();
+        // Update in-memory list
+        const idx = professors.findIndex(p => p.id === profId);
+        if (idx >= 0) {
+            professors[idx] = freshProf;
+        }
+        // Re-render modal
+        openProfessorModal(freshProf);
+    } catch (e) {
+        console.error('Failed to refresh modal:', e);
+    }
 }
 
 // Close modal

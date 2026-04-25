@@ -238,6 +238,146 @@ def update_priority(prof_id):
         return jsonify({'error': 'Professor not found'}), 404
 
 
+# ========== Professor Paper Management API ==========
+
+@app.route('/api/professor/<int:prof_id>/rescore', methods=['POST'])
+def rescore_professor(prof_id):
+    """Re-score a professor using the LLM scorer.
+
+    This clears existing scores and re-runs the scorer daemon logic.
+    """
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    if not prof:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+
+    try:
+        # Clear existing scores
+        db.update_professor_scores(
+            professor_id=prof_id,
+            direction_match=None,
+            admission_difficulty=None,
+            reasoning="",
+        )
+        db.close()
+
+        # Re-run scorer
+        from phd_hunter.hound.scorer import score_professor
+        result = _run_async(score_professor(
+            professor_id=prof_id,
+            db_path=DB_PATH,
+        ))
+
+        if result:
+            return jsonify({
+                'success': True,
+                'direction_match': result['direction_match'],
+                'admission_difficulty': result['admission_difficulty'],
+            })
+        else:
+            return jsonify({'error': 'Scoring failed. Please check profile and hound config.'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Rescoring failed: {str(e)}'}), 500
+
+
+@app.route('/api/professor/<int:prof_id>/paper', methods=['POST'])
+def add_paper_to_professor(prof_id):
+    """Add an arXiv paper to a professor by URL.
+
+    Validates that the professor is in the author list before adding.
+    """
+    data = request.get_json()
+    url = data.get('url', '').strip()
+
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+
+    # Extract arXiv ID
+    arxiv_id = None
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        path = parsed.path.strip('/')
+        if path.startswith('abs/'):
+            arxiv_id = path.split('/', 1)[1]
+        elif path.startswith('pdf/'):
+            arxiv_id = path.split('/', 1)[1].replace('.pdf', '')
+        else:
+            arxiv_id = path.split('/')[-1].replace('.pdf', '')
+    except Exception:
+        return jsonify({'error': 'Invalid arXiv URL format'}), 400
+
+    if not arxiv_id:
+        return jsonify({'error': 'Could not extract arXiv ID from URL'}), 400
+
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    if not prof:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+
+    try:
+        search = arxiv_lib.Search(id_list=[arxiv_id])
+        results = list(search.results())
+        if not results:
+            db.close()
+            return jsonify({'error': 'Paper not found on arXiv'}), 404
+
+        paper = results[0]
+        authors = [a.name for a in paper.authors]
+
+        # Validate professor is an author
+        from phd_hunter.crawlers.arxiv_crawler import _is_author_match
+        if not _is_author_match(prof['name'], authors):
+            db.close()
+            return jsonify({
+                'error': 'Author verification failed',
+                'detail': f"'{prof['name']}' was not found in the author list: {', '.join(authors[:5])}",
+            }), 400
+
+        paper_data = {
+            's2_paper_id': arxiv_id,
+            'title': paper.title,
+            'abstract': paper.summary,
+            'year': paper.published.year,
+            'venue': None,
+            'url': f'https://arxiv.org/abs/{arxiv_id}',
+            'openaccess_pdf': paper.pdf_url,
+            'citation_count': 0,
+        }
+        db.upsert_paper(prof_id, paper_data)
+
+        # Refresh professor data to include the new paper
+        updated_prof = db.get_professor_with_papers(prof_id)
+        db.close()
+
+        return jsonify({
+            'success': True,
+            'paper': {
+                'id': updated_prof['papers'][0]['id'],
+                'title': paper.title,
+                'arxiv_id': arxiv_id,
+            },
+        })
+    except Exception as e:
+        db.close()
+        return jsonify({'error': f'Failed to add paper: {str(e)}'}), 500
+
+
+@app.route('/api/professor/<int:prof_id>/paper/<int:paper_id>', methods=['DELETE'])
+def delete_paper(prof_id, paper_id):
+    """Delete a paper from a professor."""
+    db = Database(db_path=DB_PATH)
+    success = db.delete_paper(paper_id)
+    db.close()
+
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Paper not found'}), 404
+
+
 # ========== Profile API ==========
 
 @app.route('/api/profile', methods=['GET'])

@@ -58,7 +58,7 @@ Rules:
 - If no email is visible, use empty string ""
 - recruiting_status: use "accepting" only if the page explicitly mentions recruiting PhD students, hiring, or open positions
 - recent_papers: extract ONLY paper titles that are explicitly listed on the homepage (e.g., in a "Publications", "Papers", "Research", or "Selected Works" section). Include at most 10 most recent papers. If no papers are listed, use an empty array [].
-- Be concise and factual. Do not hallucinate information not present in the text.""
+- Be concise and factual. Do not hallucinate information not present in the text."""
 
 
 def build_scorer_user_prompt(

@@ -625,6 +625,21 @@ class Database:
         prof_dict['papers'] = papers
         return prof_dict
 
+    def delete_paper(self, paper_id: int) -> bool:
+        """Delete a paper record by ID.
+
+        Args:
+            paper_id: Paper database ID
+
+        Returns:
+            True if deleted, False if not found.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM papers WHERE id = ?", (paper_id,))
+        deleted = cursor.rowcount > 0
+        self.conn.commit()
+        return deleted
+
     def update_professor_paper_stats(
         self,
         professor_id: int,
