@@ -125,7 +125,7 @@ def get_hunt_config():
 @app.route('/api/hunt-config', methods=['POST'])
 def update_hunt_config():
     """Update hunt configuration."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     config = _load_hunt_config()
 
     # Update allowed fields
@@ -219,7 +219,7 @@ def get_professor(prof_id):
 @app.route('/api/professor/<int:prof_id>/priority', methods=['POST'])
 def update_priority(prof_id):
     """Update professor priority."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     priority = data.get('priority')
 
     if priority is None:
@@ -287,8 +287,12 @@ def add_paper_to_professor(prof_id):
 
     Validates that the professor is in the author list before adding.
     """
-    data = request.get_json()
-    url = data.get('url', '').strip()
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+    url = data.get('url', '')
+    if isinstance(url, str):
+        url = url.strip()
 
     if not url:
         return jsonify({'error': 'URL is required'}), 400
@@ -410,7 +414,7 @@ def get_profile():
 @app.route('/api/profile', methods=['POST'])
 def update_profile():
     """Update profile text fields."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     db = Database(db_path=DB_PATH)
 
     paper_links = data.get('paper_links')
@@ -488,8 +492,12 @@ def delete_profile_file():
 @app.route('/api/arxiv/resolve', methods=['POST'])
 def resolve_arxiv():
     """Resolve an arXiv URL to paper metadata (title, PDF URL)."""
-    data = request.get_json()
-    url = data.get('url', '').strip()
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+    url = data.get('url', '')
+    if isinstance(url, str):
+        url = url.strip()
 
     if not url:
         return jsonify({'error': 'URL is required'}), 400
@@ -770,7 +778,7 @@ def get_hound_config_api():
 @app.route('/api/hound-config', methods=['POST'])
 def update_hound_config_api():
     """Update hound configuration (LLM settings)."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     config = _load_hound_config()
 
     # Update allowed fields
