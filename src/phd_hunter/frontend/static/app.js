@@ -525,7 +525,7 @@ function openProfessor(profId) {
             </div>
             <div class="add-paper-row">
                 <input type="text" id="add-paper-input-${prof.id}" class="add-paper-input" placeholder="Paste arXiv URL..." />
-                <button class="btn-add-paper" onclick="addPaper(${prof.id})">Add</button>
+                <button class="btn-add-paper" onclick="addPaperToProfessor(${prof.id})">Add</button>
             </div>
         </div>
     `;
@@ -570,8 +570,8 @@ async function rescoreProfessor(profId) {
     }
 }
 
-// ========== Add Paper ==========
-async function addPaper(profId) {
+// ========== Add Paper to Professor Modal ==========
+async function addPaperToProfessor(profId) {
     const input = document.getElementById('add-paper-input-' + profId);
     if (!input) return;
 

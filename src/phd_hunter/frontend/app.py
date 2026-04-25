@@ -25,10 +25,64 @@ from phd_hunter.hound.scorer_daemon import get_daemon, start_daemon, stop_daemon
 from phd_hunter.analyzer import analyze_professor_first_time, chat_with_professor
 
 import arxiv as arxiv_lib
+import re
 
 app = Flask(__name__,
             template_folder=str(Path(__file__).parent),
             static_folder=str(Path(__file__).parent / 'static'))
+
+# --- arXiv URL helper ---
+_ARXIV_ID_RE = re.compile(r"(\d{4}\.\d{4,5})")  # e.g. 2403.18814
+
+
+def extract_arxiv_id(raw: str) -> str:
+    """Extract arXiv ID from a URL or raw ID string.
+
+    Supports:
+      - Full URL: https://arxiv.org/abs/2403.18814
+      - PDF URL:  https://arxiv.org/pdf/2403.18814.pdf
+      - Plain ID: 2403.18814
+      - arxiv:2403.18814
+      - With extra whitespace
+
+    Returns the bare arXiv ID or raises ValueError.
+    """
+    if not raw or not isinstance(raw, str):
+        raise ValueError("Empty or non-string input")
+
+    text = raw.strip()
+
+    # Plain ID (no slashes)
+    if "/" not in text and "." in text:
+        m = _ARXIV_ID_RE.match(text)
+        if m:
+            return m.group(1)
+
+    # Try URL parsing
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(text)
+        path = parsed.path.strip("/")
+        if path.startswith("abs/"):
+            candidate = path.split("/", 1)[1]
+        elif path.startswith("pdf/"):
+            candidate = path.split("/", 1)[1].replace(".pdf", "")
+        else:
+            candidate = path.split("/")[-1].replace(".pdf", "")
+        if candidate:
+            m = _ARXIV_ID_RE.match(candidate)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+
+    # Last resort: search the whole string for an arXiv-like ID
+    m = _ARXIV_ID_RE.search(text)
+    if m:
+        return m.group(1)
+
+    raise ValueError(f"Could not extract arXiv ID from: {text}")
+
 
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter.db")
 HUNT_CONFIG_PATH = str(Path(__file__).parent / "hunt_config.json")
@@ -297,23 +351,10 @@ def add_paper_to_professor(prof_id):
     if not url:
         return jsonify({'error': 'URL is required'}), 400
 
-    # Extract arXiv ID
-    arxiv_id = None
     try:
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-        path = parsed.path.strip('/')
-        if path.startswith('abs/'):
-            arxiv_id = path.split('/', 1)[1]
-        elif path.startswith('pdf/'):
-            arxiv_id = path.split('/', 1)[1].replace('.pdf', '')
-        else:
-            arxiv_id = path.split('/')[-1].replace('.pdf', '')
-    except Exception:
-        return jsonify({'error': 'Invalid arXiv URL format'}), 400
-
-    if not arxiv_id:
-        return jsonify({'error': 'Could not extract arXiv ID from URL'}), 400
+        arxiv_id = extract_arxiv_id(url)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
 
     db = Database(db_path=DB_PATH)
     prof = db.get_professor_hound_data(prof_id)
@@ -502,27 +543,10 @@ def resolve_arxiv():
     if not url:
         return jsonify({'error': 'URL is required'}), 400
 
-    # Extract arXiv ID from URL
-    # Supported formats:
-    # https://arxiv.org/abs/2401.12345
-    # https://arxiv.org/pdf/2401.12345.pdf
-    arxiv_id = None
     try:
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-        path = parsed.path.strip('/')
-        if path.startswith('abs/'):
-            arxiv_id = path.split('/', 1)[1]
-        elif path.startswith('pdf/'):
-            arxiv_id = path.split('/', 1)[1].replace('.pdf', '')
-        else:
-            # Try last path segment
-            arxiv_id = path.split('/')[-1].replace('.pdf', '')
-    except Exception:
-        return jsonify({'error': 'Invalid arXiv URL format'}), 400
-
-    if not arxiv_id:
-        return jsonify({'error': 'Could not extract arXiv ID from URL'}), 400
+        arxiv_id = extract_arxiv_id(url)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
 
     try:
         search = arxiv_lib.Search(id_list=[arxiv_id])
