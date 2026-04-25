@@ -573,6 +573,7 @@ async function rescoreProfessor(profId) {
 // ========== Add Paper to Professor Modal ==========
 async function addPaperToProfessor(profId) {
     const input = document.getElementById('add-paper-input-' + profId);
+    const btn = input?.nextElementSibling;
     if (!input) return;
 
     const url = input.value.trim();
@@ -580,6 +581,13 @@ async function addPaperToProfessor(profId) {
         showToast('Please enter an arXiv URL', 'error');
         return;
     }
+
+    // Show loading state
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+    }
+    showToast('Fetching paper from arXiv...', 'info', 3000);
 
     try {
         const resp = await fetch(`/api/professor/${profId}/paper`, {
@@ -599,6 +607,11 @@ async function addPaperToProfessor(profId) {
         }
     } catch (e) {
         showToast('Failed to add paper: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Add';
+        }
     }
 }
 
@@ -641,8 +654,8 @@ async function refreshProfessorModal(profId) {
         if (idx >= 0) {
             professors[idx] = freshProf;
         }
-        // Re-render modal
-        openProfessorModal(freshProf);
+        // Re-render modal (openProfessor takes an ID)
+        openProfessor(freshProf.id);
     } catch (e) {
         console.error('Failed to refresh modal:', e);
     }
