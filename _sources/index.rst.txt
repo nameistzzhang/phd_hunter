@@ -7,8 +7,8 @@ Current Features
 ----------------
 
 * **CSRankings Data Crawling**: Automatically crawl CSRankings website to get university and professor information
-* **arXiv Paper Fetching**: Search and save the latest paper metadata by author
-* **Homepage Crawling**: Scrape professor homepages and generate AI summaries
+* **arXiv Paper Fetching**: Search papers by exact title (extracted from professor homepages) to avoid name collisions; falls back to author search when needed
+* **Homepage Crawling**: Scrape professor homepages for AI summaries and recent paper title extraction
 * **SQLite Storage**: All data persisted locally
 * **Web Visualization Interface**: Interactive professor browsing, filtering, and management based on Flask
 * **AI Analysis**: LLM-powered professor matching scoring and cold email generation

@@ -9,8 +9,8 @@ Overview
 Crawlers fetch data from different sources:
 
 * Get professor lists from CSRankings
-* Search for papers published by professors from arXiv
-* Scrape professor homepages for AI summary
+* Search for papers published by professors from arXiv (by title or by author)
+* Scrape professor homepages for AI summary and recent paper titles
 
 All crawlers follow rate limits and include retry logic.
 
@@ -57,15 +57,21 @@ arXiv Crawler
 
 **File**: ``crawlers/arxiv_crawler.py``
 
-Search papers from arXiv by author.
+Search papers from arXiv by **paper title** or by **author name**.
+
+**Preferred flow** (title search): The system first extracts recent paper titles from the professor's homepage using LLM, then searches arXiv by exact title.  This avoids the name-collision problem common with author-based search.
+
+**Fallback flow** (author search): If the homepage does not list papers, the system falls back to searching by author name.
 
 Features:
 
-* Search papers by author name
+* Search papers by **exact title** (primary, avoids name collisions)
+* Search papers by **author name** (fallback)
+* Author verification: every result is checked against the professor's name
 * Sort by submission date (newest first)
 * Return paper metadata (title, authors, abstract, year, PDF link)
 
-Usage:
+Usage — title search (recommended):
 
 .. code-block:: python
 
@@ -74,8 +80,17 @@ Usage:
 
    crawler = ArxivCrawler()
    prof = Professor(name="Yangqiu Song")
+   titles = ["Paper Title 1", "Paper Title 2"]
+   papers = crawler.fetch_by_titles(prof, titles=titles, max_papers=10)
+   # Returns list of Paper objects where the professor is a confirmed author
+
+Usage — author search (fallback):
+
+.. code-block:: python
+
+   crawler = ArxivCrawler()
+   prof = Professor(name="Yangqiu Song")
    papers = crawler.fetch(prof, max_papers=10)
-   # Returns list of Paper objects
 
 Extracted data:
 
@@ -91,26 +106,35 @@ Homepage Crawler
 
 **File**: ``crawlers/homepage_crawler.py``
 
-Scrape professor homepages and generate AI summaries.
+Scrape professor homepages, generate AI summaries, and extract recent paper titles.
 
 Features:
 
-* Use Selenium to open professor homepage
-* Extract page content
+* Fetch professor homepage via HTTP
+* Extract plain text from HTML
 * Use LLM to generate summary (research focus, recruiting status, content summary)
+* **Extract recent paper titles** from the homepage (used for precise arXiv search)
 
 Usage:
 
 .. code-block:: python
 
-   from phd_hunter.crawlers.homepage_crawler import fetch_and_summarize_homepage
+   from phd_hunter.crawlers.homepage_crawler import (
+       fetch_and_summarize_homepage,
+       load_homepage_papers,
+   )
 
+   # Fetch homepage and extract info
    success = await fetch_and_summarize_homepage(
        professor_id=1,
        homepage_url="https://cs.stanford.edu/~prof/",
        professor_name="John Doe",
        db_path="phd_hunter.db"
    )
+
+   # Retrieve extracted paper titles
+   titles = load_homepage_papers(1)
+   # Returns ["Paper Title 1", "Paper Title 2", ...]
 
 Configuration
 -------------

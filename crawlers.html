@@ -96,8 +96,8 @@
 <p>Crawlers fetch data from different sources:</p>
 <ul class="simple">
 <li><p>Get professor lists from CSRankings</p></li>
-<li><p>Search for papers published by professors from arXiv</p></li>
-<li><p>Scrape professor homepages for AI summary</p></li>
+<li><p>Search for papers published by professors from arXiv (by title or by author)</p></li>
+<li><p>Scrape professor homepages for AI summary and recent paper titles</p></li>
 </ul>
 <p>All crawlers follow rate limits and include retry logic.</p>
 <div class="admonition note">
@@ -139,21 +139,32 @@ or check the Flask application code in <code class="docutils literal notranslate
 <section id="arxiv-crawler">
 <h2>arXiv Crawler<a class="headerlink" href="#arxiv-crawler" title="Link to this heading"></a></h2>
 <p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/arxiv_crawler.py</span></code></p>
-<p>Search papers from arXiv by author.</p>
+<p>Search papers from arXiv by <strong>paper title</strong> or by <strong>author name</strong>.</p>
+<p><strong>Preferred flow</strong> (title search): The system first extracts recent paper titles from the professor’s homepage using LLM, then searches arXiv by exact title.  This avoids the name-collision problem common with author-based search.</p>
+<p><strong>Fallback flow</strong> (author search): If the homepage does not list papers, the system falls back to searching by author name.</p>
 <p>Features:</p>
 <ul class="simple">
-<li><p>Search papers by author name</p></li>
+<li><p>Search papers by <strong>exact title</strong> (primary, avoids name collisions)</p></li>
+<li><p>Search papers by <strong>author name</strong> (fallback)</p></li>
+<li><p>Author verification: every result is checked against the professor’s name</p></li>
 <li><p>Sort by submission date (newest first)</p></li>
 <li><p>Return paper metadata (title, authors, abstract, year, PDF link)</p></li>
 </ul>
-<p>Usage:</p>
+<p>Usage — title search (recommended):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.arxiv_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArxivCrawler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Professor</span>
 
 <span class="n">crawler</span> <span class="o">=</span> <span class="n">ArxivCrawler</span><span class="p">()</span>
 <span class="n">prof</span> <span class="o">=</span> <span class="n">Professor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Yangqiu Song&quot;</span><span class="p">)</span>
+<span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Paper Title 1&quot;</span><span class="p">,</span> <span class="s2">&quot;Paper Title 2&quot;</span><span class="p">]</span>
+<span class="n">papers</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">fetch_by_titles</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">titles</span><span class="o">=</span><span class="n">titles</span><span class="p">,</span> <span class="n">max_papers</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="c1"># Returns list of Paper objects where the professor is a confirmed author</span>
+</pre></div>
+</div>
+<p>Usage — author search (fallback):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">crawler</span> <span class="o">=</span> <span class="n">ArxivCrawler</span><span class="p">()</span>
+<span class="n">prof</span> <span class="o">=</span> <span class="n">Professor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Yangqiu Song&quot;</span><span class="p">)</span>
 <span class="n">papers</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">max_papers</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="c1"># Returns list of Paper objects</span>
 </pre></div>
 </div>
 <p>Extracted data:</p>
@@ -169,22 +180,31 @@ or check the Flask application code in <code class="docutils literal notranslate
 <section id="homepage-crawler">
 <h2>Homepage Crawler<a class="headerlink" href="#homepage-crawler" title="Link to this heading"></a></h2>
 <p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/homepage_crawler.py</span></code></p>
-<p>Scrape professor homepages and generate AI summaries.</p>
+<p>Scrape professor homepages, generate AI summaries, and extract recent paper titles.</p>
 <p>Features:</p>
 <ul class="simple">
-<li><p>Use Selenium to open professor homepage</p></li>
-<li><p>Extract page content</p></li>
+<li><p>Fetch professor homepage via HTTP</p></li>
+<li><p>Extract plain text from HTML</p></li>
 <li><p>Use LLM to generate summary (research focus, recruiting status, content summary)</p></li>
+<li><p><strong>Extract recent paper titles</strong> from the homepage (used for precise arXiv search)</p></li>
 </ul>
 <p>Usage:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.homepage_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">fetch_and_summarize_homepage</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.homepage_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">fetch_and_summarize_homepage</span><span class="p">,</span>
+    <span class="n">load_homepage_papers</span><span class="p">,</span>
+<span class="p">)</span>
 
+<span class="c1"># Fetch homepage and extract info</span>
 <span class="n">success</span> <span class="o">=</span> <span class="k">await</span> <span class="n">fetch_and_summarize_homepage</span><span class="p">(</span>
     <span class="n">professor_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">homepage_url</span><span class="o">=</span><span class="s2">&quot;https://cs.stanford.edu/~prof/&quot;</span><span class="p">,</span>
     <span class="n">professor_name</span><span class="o">=</span><span class="s2">&quot;John Doe&quot;</span><span class="p">,</span>
     <span class="n">db_path</span><span class="o">=</span><span class="s2">&quot;phd_hunter.db&quot;</span>
 <span class="p">)</span>
+
+<span class="c1"># Retrieve extracted paper titles</span>
+<span class="n">titles</span> <span class="o">=</span> <span class="n">load_homepage_papers</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="c1"># Returns [&quot;Paper Title 1&quot;, &quot;Paper Title 2&quot;, ...]</span>
 </pre></div>
 </div>
 </section>

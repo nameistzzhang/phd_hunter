@@ -127,9 +127,19 @@
 </dl>
 </li>
 <li><dl class="simple">
-<dt><strong>Homepage Crawler</strong> - Selenium + LLM summary</dt><dd><ul>
-<li><p>Automatically scrape professor personal homepages</p></li>
+<dt><strong>Homepage Crawler</strong> - HTTP + LLM summary</dt><dd><ul>
+<li><p>Automatically fetch professor personal homepages</p></li>
 <li><p>AI extraction of research focus, recruiting status, content summary</p></li>
+<li><p><strong>Extract recent paper titles</strong> from homepage for precise arXiv search</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>arXiv Title Search</strong> - Precise paper fetching by title</dt><dd><ul>
+<li><p>Primary flow: extract paper titles from homepage, search arXiv by exact title</p></li>
+<li><p>Author verification on every result to prevent name collisions</p></li>
+<li><p>Fallback to author-name search when homepage lacks publication list</p></li>
 </ul>
 </dd>
 </dl>
