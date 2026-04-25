@@ -111,7 +111,7 @@ async def _llm_summarize_homepage(
         Dict with keys: email, research_focus, recruiting_status, summary
         or None if failed.
     """
-    from api_infra import ModelClient, ContextManager
+    from phd_hunter.api_infra import ModelClient, ContextManager
     from phd_hunter.hound.prompts import HOMEPAGE_EXTRACTION_PROMPT
 
     prompt = HOMEPAGE_EXTRACTION_PROMPT.format(
