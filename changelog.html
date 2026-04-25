@@ -49,13 +49,18 @@
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">[0.2.0] - 2026-04-21 (进行中)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">[0.1.0] - 2026-04-25</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#added">Added</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#changed">Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">[0.1.0] - 2026-04-19</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">[0.0.1] - 2026-04-21</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id3">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">[0.0.0] - 2026-04-19</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Added</a></li>
 </ul>
 </li>
 </ul>
@@ -90,29 +95,99 @@
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
 <p>所有 PhD Hunter 的重大更改都将记录在此。</p>
 <section id="id1">
-<h2>[0.2.0] - 2026-04-21 (进行中)<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<h2>[0.1.0] - 2026-04-25<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>ArxivCrawler: 按作者搜索论文</p></li>
-<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: 批量获取教授论文</p></li>
-<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: 数据库查询</p></li>
-<li><p>简化项目结构，移除 LLM/Agent/Frontend 模块</p></li>
+<li><dl class="simple">
+<dt><strong>Analyzer 模块</strong> - 基于 LLM 的教授分析与套磁信生成</dt><dd><ul>
+<li><p>首次对话自动生成教授分析报告 + cold email 草稿</p></li>
+<li><p>支持多轮对话修改套磁信</p></li>
+<li><p>基于用户 Profile（CV/PS/论文）个性化生成</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>Profile 页面</strong> - 完整的用户资料管理</dt><dd><ul>
+<li><p>CV/PS PDF 上传与文本提取</p></li>
+<li><p>arXiv 论文链接添加与解析</p></li>
+<li><p>研究偏好设置</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>教授匹配度打分</strong> - LLM 驱动的评分系统</dt><dd><ul>
+<li><p>Direction Match Score (1-5): 研究方向匹配度</p></li>
+<li><p>Admission Difficulty Score (1-5): 录取难度评估</p></li>
+<li><p>后台自动轮询打分，支持配置迭代次数</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>教授主页抓取</strong> - Selenium + LLM 摘要</dt><dd><ul>
+<li><p>自动抓取教授个人主页</p></li>
+<li><p>AI 提取研究重点、招生状态、内容摘要</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p><strong>LLM 配置弹窗</strong> - 可配置 API Key、模型、URL、温度等参数</p></li>
+<li><dl class="simple">
+<dt><strong>Chat 页面改进</strong></dt><dd><ul>
+<li><p>用户/AI 头像区分</p></li>
+<li><p>消息删除功能</p></li>
+<li><p>“Analyzing…” 加载动画</p></li>
+<li><p>消息自动滚动</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>Web 界面改进</strong></dt><dd><ul>
+<li><p>顶栏显示 Avg Match / Avg Diff 统计</p></li>
+<li><p>教授详情中论文标题可跳转 arXiv</p></li>
+<li><p>简化的 Basic Info / Metrics 布局</p></li>
+</ul>
+</dd>
+</dl>
+</li>
 </ul>
 </section>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>主入口移至根目录 <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
-<li><p>依赖项精简，移除 LLM 相关依赖</p></li>
-<li><p>文档更新以反映简化架构</p></li>
+<li><p>新增 <code class="docutils literal notranslate"><span class="pre">api_infra</span></code> 模块统一 LLM 客户端调用</p></li>
+<li><p>新增 <code class="docutils literal notranslate"><span class="pre">utils/pdf_extract.py</span></code> 提取 PDF 文本，避免 scorer 与 analyzer 耦合</p></li>
+<li><p>数据库表增加 <code class="docutils literal notranslate"><span class="pre">direction_match_score</span></code>、<code class="docutils literal notranslate"><span class="pre">admission_difficulty_score</span></code>、<code class="docutils literal notranslate"><span class="pre">homepage_summary</span></code>、<code class="docutils literal notranslate"><span class="pre">messages</span></code> 字段</p></li>
 </ul>
 </section>
 </section>
 <section id="id2">
-<h2>[0.1.0] - 2026-04-19<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<h2>[0.0.1] - 2026-04-21<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <section id="id3">
 <h3>Added<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>ArxivCrawler: 按作者搜索论文</p></li>
+<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: 批量获取教授论文</p></li>
+<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: 数据库查询</p></li>
+<li><p>Web 前端：教授浏览、筛选、优先级标记</p></li>
+</ul>
+</section>
+<section id="id4">
+<h3>Changed<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>主入口移至根目录 <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
+<li><p>简化项目结构</p></li>
+</ul>
+</section>
+</section>
+<section id="id5">
+<h2>[0.0.0] - 2026-04-19<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id6">
+<h3>Added<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>初始项目结构</p></li>
 <li><p>uv 依赖管理</p></li>
