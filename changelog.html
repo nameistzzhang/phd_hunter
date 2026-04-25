@@ -49,18 +49,24 @@
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">[0.1.0] - 2026-04-25</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">[0.1.1] - 2026-04-26</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#added">Added</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixed">Fixed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">[0.0.1] - 2026-04-21</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">[0.1.0] - 2026-04-25</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id3">Added</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id4">Changed</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">[0.0.0] - 2026-04-19</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id5">[0.0.1] - 2026-04-21</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id6">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Changed</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">[0.0.0] - 2026-04-19</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id9">Added</a></li>
 </ul>
 </li>
 </ul>
@@ -95,9 +101,76 @@
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
 <p>All major changes to PhD Hunter will be recorded here.</p>
 <section id="id1">
-<h2>[0.1.0] - 2026-04-25<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<h2>[0.1.1] - 2026-04-26<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><strong>OpenAlex Crawler</strong> - Replaced arXiv author search as primary paper source</dt><dd><ul>
+<li><p>Institution + author matching for accurate professor identification</p></li>
+<li><p>arXiv link extraction from OpenAlex <code class="docutils literal notranslate"><span class="pre">locations</span></code> / <code class="docutils literal notranslate"><span class="pre">open_access</span></code> fields</p></li>
+<li><p>Graceful handling of non-arXiv papers (conference/journal work without arXiv ID)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>arXiv Abstract Enrichment</strong> - Post-process OpenAlex papers with accurate arXiv abstracts</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ArxivCrawler.fetch_by_ids()</span></code>: batch query arXiv by ID list</p></li>
+<li><p>Updates DB <code class="docutils literal notranslate"><span class="pre">abstract</span></code> and <code class="docutils literal notranslate"><span class="pre">openaccess_pdf</span></code> fields when arXiv data is better</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>Professor Modal Enhancements</strong></dt><dd><ul>
+<li><p><strong>Rescore</strong> button: re-run LLM scoring after paper edits</p></li>
+<li><p><strong>Add Paper</strong>: paste arXiv URL to manually add a paper (with author verification)</p></li>
+<li><p><strong>Delete Paper</strong>: remove incorrect papers via × button</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>Scorer Daemon Reliability</strong></dt><dd><ul>
+<li><p>Persistent event loop in daemon thread (avoids <code class="docutils literal notranslate"><span class="pre">event</span> <span class="pre">loop</span> <span class="pre">closed</span></code> errors)</p></li>
+<li><p>Reduced polling frequency (30s) and inter-professor delay (5s) to avoid API rate limits</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>Database</strong></dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">update_paper_by_arxiv_id()</span></code>: update paper fields by arxiv_id + professor_id</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delete_paper()</span></code>: delete paper by database ID</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="changed">
+<h3>Changed<a class="headerlink" href="#changed" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Paper Fetching Flow</strong>: OpenAlex → save to DB → arXiv enrichment (abstract + PDF URL)</p></li>
+<li><p><strong>arXiv Crawler</strong>: <code class="docutils literal notranslate"><span class="pre">fetch_by_titles()</span></code> now supports progressive query degradation (full title → 5 words → 3 words) with Jaccard similarity filtering</p></li>
+<li><p><strong>Author Verification</strong>: <code class="docutils literal notranslate"><span class="pre">_is_author_match()</span></code> handles initials, last-name-only, and case-insensitive matching</p></li>
+<li><p><strong>Frontend</strong>: defensive <code class="docutils literal notranslate"><span class="pre">request.get_json(silent=True)</span></code> across all POST routes</p></li>
+</ul>
+</section>
+<section id="fixed">
+<h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>OpenAlex arXiv source matching: exact <code class="docutils literal notranslate"><span class="pre">==</span> <span class="pre">&quot;arXiv&quot;</span></code> → case-insensitive substring match (handles <code class="docutils literal notranslate"><span class="pre">&quot;arXiv</span> <span class="pre">(Cornell</span> <span class="pre">University)&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;ArXiv.org&quot;</span></code>)</p></li>
+<li><p>arXiv ID version stripping: <code class="docutils literal notranslate"><span class="pre">2512.02589v2</span></code> → <code class="docutils literal notranslate"><span class="pre">2512.02589</span></code> for consistent DB keys</p></li>
+<li><p>Second crawl no longer re-processes all existing professors (tracks <code class="docutils literal notranslate"><span class="pre">existing_ids_before</span></code>)</p></li>
+</ul>
+</section>
+</section>
+<section id="id2">
+<h2>[0.1.0] - 2026-04-25<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>Added<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><dl class="simple">
 <dt><strong>Analyzer Module</strong> - LLM-powered professor analysis and cold email generation</dt><dd><ul>
@@ -166,8 +239,8 @@
 </li>
 </ul>
 </section>
-<section id="changed">
-<h3>Changed<a class="headerlink" href="#changed" title="Link to this heading"></a></h3>
+<section id="id4">
+<h3>Changed<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">api_infra</span></code> module for unified LLM client calls</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">utils/pdf_extract.py</span></code> for PDF text extraction, decoupling scorer and analyzer</p></li>
@@ -175,10 +248,10 @@
 </ul>
 </section>
 </section>
-<section id="id2">
-<h2>[0.0.1] - 2026-04-21<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<section id="id3">
-<h3>Added<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<section id="id5">
+<h2>[0.0.1] - 2026-04-21<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id6">
+<h3>Added<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>ArxivCrawler: Search papers by author</p></li>
 <li><p>CLI command <code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: Batch fetch professor papers</p></li>
@@ -186,18 +259,18 @@
 <li><p>Web frontend: Professor browsing, filtering, priority marking</p></li>
 </ul>
 </section>
-<section id="id4">
-<h3>Changed<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="id7">
+<h3>Changed<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Main entry moved to root <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
 <li><p>Simplified project structure</p></li>
 </ul>
 </section>
 </section>
-<section id="id5">
-<h2>[0.0.0] - 2026-04-19<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<section id="id6">
-<h3>Added<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id8">
+<h2>[0.0.0] - 2026-04-19<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id9">
+<h3>Added<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Initial project structure</p></li>
 <li><p>uv dependency management</p></li>

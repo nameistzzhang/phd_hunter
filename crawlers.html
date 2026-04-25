@@ -49,6 +49,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Crawlers</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#csrankings-crawler">CSRankings Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#openalex-crawler">OpenAlex Crawler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#arxiv-crawler">arXiv Crawler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#homepage-crawler">Homepage Crawler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
@@ -96,7 +97,8 @@
 <p>Crawlers fetch data from different sources:</p>
 <ul class="simple">
 <li><p>Get professor lists from CSRankings</p></li>
-<li><p>Search for papers published by professors from arXiv (by title or by author)</p></li>
+<li><p>Fetch papers via <strong>OpenAlex</strong> (primary source — institution + author matching)</p></li>
+<li><p>Enrich abstracts via <strong>arXiv</strong> (by ID — accurate abstracts and PDF links)</p></li>
 <li><p>Scrape professor homepages for AI summary and recent paper titles</p></li>
 </ul>
 <p>All crawlers follow rate limits and include retry logic.</p>
@@ -136,21 +138,62 @@ or check the Flask application code in <code class="docutils literal notranslate
 <li><p>Professor homepage (extracted from ranking page)</p></li>
 </ul>
 </section>
+<section id="openalex-crawler">
+<h2>OpenAlex Crawler<a class="headerlink" href="#openalex-crawler" title="Link to this heading"></a></h2>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/openalex_crawler.py</span></code></p>
+<p><strong>Primary paper source.</strong> Fetches professor papers via the <a class="reference external" href="https://openalex.org/">OpenAlex API</a>, using institution + author matching for accurate identification.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Search institution by name, then author within that institution</p></li>
+<li><p>Select author with the most works (highest confidence)</p></li>
+<li><p>Fetch works sorted by publication date</p></li>
+<li><p>Extract arXiv links from <code class="docutils literal notranslate"><span class="pre">locations</span></code> and <code class="docutils literal notranslate"><span class="pre">open_access</span></code> fields</p></li>
+<li><p>Handle non-arXiv papers gracefully (skip if no arXiv ID — DB schema requires it)</p></li>
+</ul>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.openalex_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAlexCrawler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Professor</span>
+
+<span class="n">crawler</span> <span class="o">=</span> <span class="n">OpenAlexCrawler</span><span class="p">(</span><span class="n">delay</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">prof</span> <span class="o">=</span> <span class="n">Professor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Bingsheng He&quot;</span><span class="p">,</span> <span class="n">university</span><span class="o">=</span><span class="s2">&quot;National University of Singapore&quot;</span><span class="p">)</span>
+<span class="n">papers</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">max_papers</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="c1"># Returns list of Paper objects (arxiv_id set when arXiv link found)</span>
+<span class="n">crawler</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Extracted data:</p>
+<ul class="simple">
+<li><p>Paper title</p></li>
+<li><p>Author list</p></li>
+<li><p>Abstract (from OpenAlex, may be incomplete)</p></li>
+<li><p>Publication year / month</p></li>
+<li><p>arXiv ID (extracted from locations/open_access)</p></li>
+<li><p>arXiv URL and PDF URL</p></li>
+<li><p>Citation count</p></li>
+<li><p>Venue name</p></li>
+</ul>
+</section>
 <section id="arxiv-crawler">
 <h2>arXiv Crawler<a class="headerlink" href="#arxiv-crawler" title="Link to this heading"></a></h2>
 <p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/arxiv_crawler.py</span></code></p>
-<p>Search papers from arXiv by <strong>paper title</strong> or by <strong>author name</strong>.</p>
-<p><strong>Preferred flow</strong> (title search): The system first extracts recent paper titles from the professor’s homepage using LLM, then searches arXiv by exact title.  This avoids the name-collision problem common with author-based search.</p>
-<p><strong>Fallback flow</strong> (author search): If the homepage does not list papers, the system falls back to searching by author name.</p>
+<p><strong>Abstract enrichment + manual addition.</strong> Supplements OpenAlex papers with accurate arXiv abstracts, and supports manual paper addition by URL.</p>
 <p>Features:</p>
 <ul class="simple">
-<li><p>Search papers by <strong>exact title</strong> (primary, avoids name collisions)</p></li>
-<li><p>Search papers by <strong>author name</strong> (fallback)</p></li>
-<li><p>Author verification: every result is checked against the professor’s name</p></li>
-<li><p>Sort by submission date (newest first)</p></li>
-<li><p>Return paper metadata (title, authors, abstract, year, PDF link)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fetch_by_ids()</span></code>: batch query arXiv by ID list for accurate abstracts and PDF links</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fetch_by_titles()</span></code>: search by paper title with progressive query degradation and Jaccard similarity filtering</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fetch()</span></code>: author-name search (legacy, not used in main flow)</p></li>
+<li><p>Author verification: fuzzy name matching (handles initials, last-name-only)</p></li>
 </ul>
-<p>Usage — title search (recommended):</p>
+<p>Usage — abstract enrichment (main flow):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.arxiv_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArxivCrawler</span>
+
+<span class="n">crawler</span> <span class="o">=</span> <span class="n">ArxivCrawler</span><span class="p">(</span><span class="n">delay</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">fetch_by_ids</span><span class="p">([</span><span class="s2">&quot;2412.11483&quot;</span><span class="p">,</span> <span class="s2">&quot;2512.02589&quot;</span><span class="p">])</span>
+<span class="c1"># Returns dict: arxiv_id -&gt; Paper with accurate abstract and pdf_url</span>
+<span class="n">crawler</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Usage — manual add by title (for homepage-extracted titles):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.arxiv_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArxivCrawler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Professor</span>
 
@@ -161,17 +204,11 @@ or check the Flask application code in <code class="docutils literal notranslate
 <span class="c1"># Returns list of Paper objects where the professor is a confirmed author</span>
 </pre></div>
 </div>
-<p>Usage — author search (fallback):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">crawler</span> <span class="o">=</span> <span class="n">ArxivCrawler</span><span class="p">()</span>
-<span class="n">prof</span> <span class="o">=</span> <span class="n">Professor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Yangqiu Song&quot;</span><span class="p">)</span>
-<span class="n">papers</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">max_papers</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-</pre></div>
-</div>
 <p>Extracted data:</p>
 <ul class="simple">
 <li><p>Paper title</p></li>
 <li><p>Author list</p></li>
-<li><p>Abstract</p></li>
+<li><p>Abstract (accurate, from arXiv)</p></li>
 <li><p>Publication year</p></li>
 <li><p>arXiv ID</p></li>
 <li><p>PDF URL</p></li>
@@ -216,8 +253,12 @@ or check the Flask application code in <code class="docutils literal notranslate
   --timeout 30                 # Timeout (seconds)
   --max-professors 5           # Max professors per university
 
-ArxivCrawler:
+OpenAlexCrawler:
   --delay 1.0                  # Request interval (seconds)
+  --max-retries 3              # Retry attempts on failure
+
+ArxivCrawler:
+  --delay 3.0                  # Request interval (seconds, be respectful)
   --max-papers 10              # Max papers per professor
 
 HomepageCrawler:
