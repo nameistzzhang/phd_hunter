@@ -46,8 +46,8 @@ class ModelType(Enum):
 # YUNWU API configuration
 YUNWU_BASE_URL = "https://yunwu.ai/v1"
 DEFAULT_TIMEOUT = 120.0
-MAX_RETRIES = 3
-RETRY_BACKOFF = 2.0  # seconds
+MAX_RETRIES = 5
+RETRY_BACKOFF = 3.0  # seconds
 
 
 class ModelConfig(BaseModel):

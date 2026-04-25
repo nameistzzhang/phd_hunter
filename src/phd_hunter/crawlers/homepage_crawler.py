@@ -14,9 +14,6 @@ from phd_hunter.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Shared httpx client (lazy init)
-_http_client: Optional[httpx.AsyncClient] = None
-
 # Raw HTML archive directory (project root / home_pages)
 HOME_PAGES_DIR = Path(__file__).parent.parent.parent.parent / "home_pages"
 
@@ -39,16 +36,17 @@ USER_AGENT = (
 )
 
 
-def _get_http_client() -> httpx.AsyncClient:
-    global _http_client
-    if _http_client is None or _http_client.is_closed:
-        _http_client = httpx.AsyncClient(
-            headers={"User-Agent": USER_AGENT},
-            timeout=httpx.Timeout(10.0, connect=5.0),
-            follow_redirects=True,
-            max_redirects=5,
-        )
-    return _http_client
+def _create_http_client() -> httpx.AsyncClient:
+    """Create a fresh httpx.AsyncClient for each request.
+
+    Avoids event-loop binding issues when the function is called
+    from different asyncio event loops (e.g. scorer daemon)."""
+    return httpx.AsyncClient(
+        headers={"User-Agent": USER_AGENT},
+        timeout=httpx.Timeout(10.0, connect=5.0),
+        follow_redirects=True,
+        max_redirects=5,
+    )
 
 
 async def _fetch_homepage(url: str) -> Optional[str]:
@@ -57,7 +55,7 @@ async def _fetch_homepage(url: str) -> Optional[str]:
     Returns:
         HTML string or None if failed.
     """
-    client = _get_http_client()
+    client = _create_http_client()
     try:
         resp = await client.get(url)
         resp.raise_for_status()

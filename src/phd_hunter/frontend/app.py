@@ -799,6 +799,11 @@ def run_hunt_worker():
                 hunt_state['professors_total'] = total
                 hunt_state['professors_completed'] = current
 
+        # Remember existing professor IDs BEFORE crawl so we can identify new ones
+        existing_profs_before = db.list_professors(limit=10000)
+        existing_ids_before = {p['id'] for p in existing_profs_before}
+        log_message(f"[INFO] Existing professors in DB before crawl: {len(existing_ids_before)}")
+
         crawler = CSRankingsCrawler(
             headless=True,
             timeout=10,
@@ -890,6 +895,11 @@ def run_hunt_worker():
             with _current_crawler_lock:
                 _current_crawler = None
 
+        # Identify NEWLY ADDED professor IDs for Phase 2
+        all_profs_after = db.list_professors(limit=10000)
+        new_professor_ids = [p['id'] for p in all_profs_after if p['id'] not in existing_ids_before]
+        log_message(f"[INFO] New professor IDs for paper fetch: {len(new_professor_ids)}")
+
         # ========== Phase 2: Fetch Papers ==========
         log_message("")
         log_message("=" * 70)
@@ -899,16 +909,27 @@ def run_hunt_worker():
         arxiv_crawler = ArxivCrawler(delay=10.0)
 
         try:
-            # Get professors from database
-            professors_from_db = db.list_professors(limit=max_professors * 10)
+            # Only fetch papers for NEWLY ADDED professors in this hunt
+            if not new_professor_ids:
+                log_message("[INFO] No new professors to fetch papers for.")
+                with hunt_lock:
+                    hunt_state['running'] = False
+                    hunt_state['phase'] = None
+                return
+
+            professors_from_db = []
+            for pid in new_professor_ids:
+                prof = db.get_professor_hound_data(pid)
+                if prof:
+                    professors_from_db.append(prof)
+
+            log_message(f"找到 {len(professors_from_db)} 位新教授，开始获取论文...")
 
             if not professors_from_db:
                 log_message("[WARN] 数据库中没有教授记录")
                 with hunt_lock:
                     hunt_state['running'] = False
                 return
-
-            log_message(f"找到 {len(professors_from_db)} 位教授，开始获取论文...")
 
             # Pre-fetch existing papers for ALL professors (batch)
             log_message("Checking for existing papers...")
