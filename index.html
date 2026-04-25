@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PhD Hunter - PhD 导师套磁筛选助手 &mdash; PhD Hunter 0.1.0 documentation</title>
+  <title>PhD Hunter - PhD Advisor Application Assistant &mdash; PhD Hunter 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -41,7 +41,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
@@ -65,7 +65,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">PhD Hunter - PhD 导师套磁筛选助手</li>
+      <li class="breadcrumb-item active">PhD Hunter - PhD Advisor Application Assistant</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -75,156 +75,167 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="phd-hunter-phd">
-<h1>PhD Hunter - PhD 导师套磁筛选助手<a class="headerlink" href="#phd-hunter-phd" title="Link to this heading"></a></h1>
-<p>PhD Hunter 是一个轻量级的 PhD 导师信息收集工具，专注于自动化获取 CS 领域教授信息及其最新论文。</p>
-<section id="id1">
-<h2>当前功能<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+  <section id="phd-hunter-phd-advisor-application-assistant">
+<h1>PhD Hunter - PhD Advisor Application Assistant<a class="headerlink" href="#phd-hunter-phd-advisor-application-assistant" title="Link to this heading"></a></h1>
+<p>PhD Hunter is a lightweight PhD advisor information collection tool focused on automating the acquisition of CS professor information and their latest papers.</p>
+<section id="current-features">
+<h2>Current Features<a class="headerlink" href="#current-features" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>CSRankings 数据爬取</strong>: 自动爬取 CSRankings 网站获取院校和导师信息</p></li>
-<li><p><strong>arXiv 论文获取</strong>: 按作者搜索并保存最新论文元数据</p></li>
-<li><p><strong>SQLite 存储</strong>: 所有数据本地持久化</p></li>
-<li><p><strong>Web 可视化界面</strong>: 基于 Flask 的交互式教授浏览、筛选和管理</p></li>
-<li><p><strong>优先级标记</strong>: 为每位教授标记优先级（冲刺/匹配/稳妥/保底/不考虑）</p></li>
-<li><p><strong>多维筛选</strong>: 按优先级、研究领域、大学筛选教授列表</p></li>
+<li><p><strong>CSRankings Data Crawling</strong>: Automatically crawl CSRankings website to get university and professor information</p></li>
+<li><p><strong>arXiv Paper Fetching</strong>: Search and save the latest paper metadata by author</p></li>
+<li><p><strong>Homepage Crawling</strong>: Scrape professor homepages and generate AI summaries</p></li>
+<li><p><strong>SQLite Storage</strong>: All data persisted locally</p></li>
+<li><p><strong>Web Visualization Interface</strong>: Interactive professor browsing, filtering, and management based on Flask</p></li>
+<li><p><strong>AI Analysis</strong>: LLM-powered professor matching scoring and cold email generation</p></li>
+<li><p><strong>Profile Management</strong>: Upload CV/PS, manage arXiv papers, set research preferences</p></li>
+<li><p><strong>Priority Tagging</strong>: Mark priority for each professor (Reach/Match/Target/Safety/Not Considered)</p></li>
+<li><p><strong>Multi-dimensional Filtering</strong>: Filter professor list by priority, research area, university, score</p></li>
 </ul>
 </section>
-<section id="id2">
-<h2>项目架构<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="project-architecture">
+<h2>Project Architecture<a class="headerlink" href="#project-architecture" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>phd_hunter/
-├── main.py                       # CLI 入口 (根目录)
-├── arxiv_demo.py                 # arXiv API 演示
-├── pyproject.toml                # 项目配置
-├── README.md                     # 项目说明
-├── docs/                         # Sphinx 文档
+├── main.py                       # CLI entry (root directory)
+├── pyproject.toml                # Project configuration
+├── README.md                     # Project documentation
+├── docs/                         # Sphinx documentation
 └── src/phd_hunter/
-    ├── models.py                 # Pydantic 数据模型
-    ├── database.py               # SQLite 数据库操作
+    ├── models.py                 # Pydantic data models
+    ├── database.py               # SQLite database operations
+    ├── api_infra/                # LLM API infrastructure
     ├── crawlers/
-    │   ├── base.py               # 爬虫基类 (缓存支持)
-    │   ├── csrankings.py         # CSRankings 爬虫
-    │   └── arxiv_crawler.py      # arXiv 爬虫
+    │   ├── base.py               # Crawler base class (cache support)
+    │   ├── csrankings.py         # CSRankings crawler
+    │   ├── arxiv_crawler.py      # arXiv crawler
+    │   └── homepage_crawler.py   # Homepage crawler
+    ├── hound/
+    │   └── scorer.py             # Professor scoring
+    ├── analyzer/
+    │   ├── analyzer.py           # Professor analysis
+    │   └── prompts.py            # Prompt templates
     ├── utils/
-    │   ├── logger.py             # 日志配置
-    │   └── helpers.py            # 工具函数
-    └── frontend/                 # Web 前端界面
-        ├── app.py                # Flask API 服务器
-        ├── index.html            # 主页面
+    │   ├── logger.py             # Logging configuration
+    │   ├── helpers.py            # Utility functions
+    │   └── pdf_extract.py        # PDF text extraction
+    └── frontend/                 # Web frontend interface
+        ├── app.py                # Flask API server
+        ├── index.html            # Main page
         ├── static/
-        │   ├── styles.css        # 样式表
-        │   ├── app.js            # 前端逻辑
-        │   └── assets/           # 静态资源 (图标等)
-        └── templates/            # HTML 模板
+        │   ├── styles.css        # Stylesheet
+        │   ├── app.js            # Frontend logic
+        │   └── windsurf.svg      # AI avatar icon
+        └── templates/            # HTML templates
 </pre></div>
 </div>
 </section>
-<section id="id3">
-<h2>快速开始<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<section id="id4">
-<h3>环境要求<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<section id="requirements">
+<h3>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Python 3.10+</p></li>
-<li><p>uv (推荐) 或 pip</p></li>
-<li><p>Chrome/Chromium 浏览器 (用于 Selenium)</p></li>
+<li><p>uv (recommended) or pip</p></li>
+<li><p>Chrome/Chromium browser (for Selenium)</p></li>
 </ul>
 </section>
-<section id="id5">
-<h3>安装步骤<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="installation-steps">
+<h3>Installation Steps<a class="headerlink" href="#installation-steps" title="Link to this heading"></a></h3>
 <ol class="arabic">
-<li><p><strong>克隆项目</strong></p>
+<li><p><strong>Clone the repository</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>&lt;repository-url&gt;
 <span class="nb">cd</span><span class="w"> </span>phd-hunter
 </pre></div>
 </div>
 </li>
-<li><p><strong>安装依赖</strong></p>
-<p>使用 uv (推荐):</p>
+<li><p><strong>Install dependencies</strong></p>
+<p>Using uv (recommended):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 </pre></div>
 </div>
-<p>或使用 pip:</p>
+<p>Or using pip:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
 .venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate<span class="w">  </span><span class="c1"># Windows</span>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 </li>
-<li><p><strong>运行应用</strong></p>
-<p>命令行模式：</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 爬取教授数据</span>
+<li><p><strong>Run the application</strong></p>
+<p>Command line mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Crawl professor data</span>
 python<span class="w"> </span>main.py<span class="w"> </span>crawl<span class="w"> </span>--area<span class="w"> </span>ai<span class="w"> </span>--region<span class="w"> </span>world<span class="w"> </span>--max-professors<span class="w"> </span><span class="m">5</span>
 
-<span class="c1"># 获取论文</span>
+<span class="c1"># Fetch papers</span>
 python<span class="w"> </span>main.py<span class="w"> </span>fetch-papers<span class="w"> </span>--max-papers<span class="w"> </span><span class="m">10</span>
 
-<span class="c1"># 查看统计</span>
+<span class="c1"># View statistics</span>
 python<span class="w"> </span>main.py<span class="w"> </span>stats
 </pre></div>
 </div>
-<p>Web 界面模式：</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 启动 Flask 服务器</span>
-<span class="nb">cd</span><span class="w"> </span>src/phd_hunter/frontend
-python<span class="w"> </span>run_server.py
+<p>Web interface mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start Flask server</span>
+<span class="nv">PYTHONPATH</span><span class="o">=</span>src<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>phd_hunter.frontend.app
 
-<span class="c1"># 然后在浏览器打开 http://localhost:5000</span>
+<span class="c1"># Then open http://localhost:8080 in browser</span>
 </pre></div>
 </div>
 </li>
 </ol>
 </section>
 </section>
-<section id="id6">
-<h2>文档<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#id1">前提条件</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#id2">分步安装</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#id3">故障排除</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#id4">下一步</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#step-by-step-installation">Step-by-Step Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id1">系统设计</a></li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id2">核心组件</a></li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id3">数据流程</a></li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id4">配置</a></li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id5">扩展性</a></li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id6">开发流程</a></li>
-<li class="toctree-l2"><a class="reference internal" href="architecture.html#id7">参见</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#system-design">System Design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#core-components">Core Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#data-flow">Data Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id1">概述</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="crawlers.html#csrankings-crawler">CSRankings Crawler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="crawlers.html#arxiv-crawler">arXiv Crawler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id2">配置</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id3">缓存</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id4">速率限制</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id5">错误处理</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id6">添加新爬虫</a></li>
-<li class="toctree-l2"><a class="reference internal" href="crawlers.html#id7">参见</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#homepage-crawler">Homepage Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#caching">Caching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#rate-limiting">Rate Limiting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#adding-new-crawlers">Adding New Crawlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crawlers.html#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api.html#web-rest-api">Web REST API</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#id1">命令行参考</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#api">数据库 API</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#id4">模型参考</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#id5">爬虫基类</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api.html#id6">参见</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#command-line-reference">Command Line Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#database-api">Database API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#model-reference">Model Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#crawler-base-class">Crawler Base Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#analyzer">Analyzer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id1">快速开始</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id2">开发流程</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id3">代码规范</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id4">添加功能</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id5">文档</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#pull-request">Pull Request 检查清单</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id6">获取帮助</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#id7">许可证</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-standards">Code Standards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#adding-features">Adding Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#pull-request-checklist">Pull Request Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#license">License</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
@@ -236,8 +247,8 @@ python<span class="w"> </span>run_server.py
 </ul>
 </div>
 </section>
-<section id="id7">
-<h2>索引与表格<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="indices-and-tables">
+<h2>Indices and Tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>

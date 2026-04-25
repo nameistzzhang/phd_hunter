@@ -42,20 +42,21 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Crawlers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">概述</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#csrankings-crawler">CSRankings Crawler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#arxiv-crawler">arXiv Crawler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">配置</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">缓存</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">速率限制</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">错误处理</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id6">添加新爬虫</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">参见</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#homepage-crawler">Homepage Crawler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#caching">Caching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rate-limiting">Rate Limiting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#error-handling">Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-new-crawlers">Adding New Crawlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
@@ -89,32 +90,33 @@
              
   <section id="crawlers">
 <h1>Crawlers<a class="headerlink" href="#crawlers" title="Link to this heading"></a></h1>
-<p>本模块负责从学术来源获取数据。此外，项目还包含一个 Web 前端界面用于数据展示和交互。</p>
-<section id="id1">
-<h2>概述<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>爬虫负责从不同来源获取数据：</p>
+<p>This module is responsible for fetching data from academic sources. Additionally, the project includes a web frontend interface for data display and interaction.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Crawlers fetch data from different sources:</p>
 <ul class="simple">
-<li><p>从 CSRankings 获取教授列表</p></li>
-<li><p>从 arXiv 搜索教授发表的论文</p></li>
+<li><p>Get professor lists from CSRankings</p></li>
+<li><p>Search for papers published by professors from arXiv</p></li>
+<li><p>Scrape professor homepages for AI summary</p></li>
 </ul>
-<p>所有爬虫遵循速率限制并包含重试逻辑。</p>
+<p>All crawlers follow rate limits and include retry logic.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Web 前端部分见 <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a> 中的”Web 前端界面”章节，
-或直接查看 <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/</span></code> 目录下的 Flask 应用代码。</p>
+<p>For the web frontend section, see the “Web Frontend” chapter in <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a>,
+or check the Flask application code in <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/</span></code> directory.</p>
 </div>
 </section>
 <section id="csrankings-crawler">
 <h2>CSRankings Crawler<a class="headerlink" href="#csrankings-crawler" title="Link to this heading"></a></h2>
-<p><strong>文件</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/csrankings.py</span></code></p>
-<p>从 <a class="reference external" href="https://csrankings.org">https://csrankings.org</a> 提取教授数据。</p>
-<p>功能：</p>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/csrankings.py</span></code></p>
+<p>Extracts professor data from <a class="reference external" href="https://csrankings.org">https://csrankings.org</a>.</p>
+<p>Features:</p>
 <ul class="simple">
-<li><p>选择特定机构和 CS 子领域</p></li>
-<li><p>提取教授姓名、主页和 affiliations</p></li>
-<li><p>使用 Selenium 处理动态页面内容</p></li>
+<li><p>Select specific institutions and CS sub-areas</p></li>
+<li><p>Extract professor names, homepages, and affiliations</p></li>
+<li><p>Use Selenium to handle dynamic page content</p></li>
 </ul>
-<p>使用：</p>
+<p>Usage:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.csrankings</span><span class="w"> </span><span class="kn">import</span> <span class="n">CSRankingsCrawler</span>
 
 <span class="n">crawler</span> <span class="o">=</span> <span class="n">CSRankingsCrawler</span><span class="p">(</span><span class="n">headless</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -123,109 +125,134 @@
     <span class="n">region</span><span class="o">=</span><span class="s2">&quot;world&quot;</span><span class="p">,</span>
     <span class="n">max_professors</span><span class="o">=</span><span class="mi">5</span>
 <span class="p">)</span>
-<span class="c1"># 返回 University 和 Professor 对象列表</span>
+<span class="c1"># Returns lists of University and Professor objects</span>
 </pre></div>
 </div>
-<p>提取的数据：</p>
+<p>Extracted data:</p>
 <ul class="simple">
-<li><p>大学名称、排名、分数</p></li>
-<li><p>教授姓名</p></li>
-<li><p>大学 URL</p></li>
-<li><p>教授主页（从排名页面提取）</p></li>
+<li><p>University name, rank, score</p></li>
+<li><p>Professor name</p></li>
+<li><p>University URL</p></li>
+<li><p>Professor homepage (extracted from ranking page)</p></li>
 </ul>
 </section>
 <section id="arxiv-crawler">
 <h2>arXiv Crawler<a class="headerlink" href="#arxiv-crawler" title="Link to this heading"></a></h2>
-<p><strong>文件</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/arxiv_crawler.py</span></code></p>
-<p>按作者从 arXiv 搜索论文。</p>
-<p>功能：</p>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/arxiv_crawler.py</span></code></p>
+<p>Search papers from arXiv by author.</p>
+<p>Features:</p>
 <ul class="simple">
-<li><p>按作者姓名搜索论文</p></li>
-<li><p>按提交日期排序（最新的优先）</p></li>
-<li><p>返回论文元数据（标题、作者、摘要、年份、PDF 链接）</p></li>
+<li><p>Search papers by author name</p></li>
+<li><p>Sort by submission date (newest first)</p></li>
+<li><p>Return paper metadata (title, authors, abstract, year, PDF link)</p></li>
 </ul>
-<p>使用：</p>
+<p>Usage:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.arxiv_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArxivCrawler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Professor</span>
 
 <span class="n">crawler</span> <span class="o">=</span> <span class="n">ArxivCrawler</span><span class="p">()</span>
 <span class="n">prof</span> <span class="o">=</span> <span class="n">Professor</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Yangqiu Song&quot;</span><span class="p">)</span>
 <span class="n">papers</span> <span class="o">=</span> <span class="n">crawler</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">prof</span><span class="p">,</span> <span class="n">max_papers</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="c1"># 返回 Paper 对象列表</span>
+<span class="c1"># Returns list of Paper objects</span>
 </pre></div>
 </div>
-<p>提取的数据：</p>
+<p>Extracted data:</p>
 <ul class="simple">
-<li><p>论文标题</p></li>
-<li><p>作者列表</p></li>
-<li><p>摘要</p></li>
-<li><p>发表年份</p></li>
+<li><p>Paper title</p></li>
+<li><p>Author list</p></li>
+<li><p>Abstract</p></li>
+<li><p>Publication year</p></li>
 <li><p>arXiv ID</p></li>
 <li><p>PDF URL</p></li>
 </ul>
 </section>
-<section id="id2">
-<h2>配置<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>当前配置通过命令行参数传递。关键参数：</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>CSRankingsCrawler:
-  --headless / --no-headless   # 无头模式
-  --timeout 30                 # 超时（秒）
-  --max-professors 5          # 每校最大教授数
+<section id="homepage-crawler">
+<h2>Homepage Crawler<a class="headerlink" href="#homepage-crawler" title="Link to this heading"></a></h2>
+<p><strong>File</strong>: <code class="docutils literal notranslate"><span class="pre">crawlers/homepage_crawler.py</span></code></p>
+<p>Scrape professor homepages and generate AI summaries.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Use Selenium to open professor homepage</p></li>
+<li><p>Extract page content</p></li>
+<li><p>Use LLM to generate summary (research focus, recruiting status, content summary)</p></li>
+</ul>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.homepage_crawler</span><span class="w"> </span><span class="kn">import</span> <span class="n">fetch_and_summarize_homepage</span>
 
-ArxivCrawler:
-  --delay 1.0                 # 请求间隔（秒）
-  --max-papers 10             # 每位教授最大论文数
+<span class="n">success</span> <span class="o">=</span> <span class="k">await</span> <span class="n">fetch_and_summarize_homepage</span><span class="p">(</span>
+    <span class="n">professor_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">homepage_url</span><span class="o">=</span><span class="s2">&quot;https://cs.stanford.edu/~prof/&quot;</span><span class="p">,</span>
+    <span class="n">professor_name</span><span class="o">=</span><span class="s2">&quot;John Doe&quot;</span><span class="p">,</span>
+    <span class="n">db_path</span><span class="o">=</span><span class="s2">&quot;phd_hunter.db&quot;</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </section>
-<section id="id3">
-<h2>缓存<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>所有爬虫结果被缓存以避免冗余请求：</p>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>Current configuration is passed via command line parameters. Key parameters:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>CSRankingsCrawler:
+  --headless / --no-headless   # Headless mode
+  --timeout 30                 # Timeout (seconds)
+  --max-professors 5           # Max professors per university
+
+ArxivCrawler:
+  --delay 1.0                  # Request interval (seconds)
+  --max-papers 10              # Max papers per professor
+
+HomepageCrawler:
+  Requires LLM configuration in hound_config.json
+</pre></div>
+</div>
+</section>
+<section id="caching">
+<h2>Caching<a class="headerlink" href="#caching" title="Link to this heading"></a></h2>
+<p>All crawler results are cached to avoid redundant requests:</p>
 <ul class="simple">
-<li><p><strong>缓存位置</strong>: 内存缓存（进程内）</p></li>
-<li><p><strong>缓存键</strong>: 参数 hash</p></li>
-<li><p><strong>有效期</strong>: 默认 1 天</p></li>
+<li><p><strong>Cache location</strong>: Memory cache (in-process)</p></li>
+<li><p><strong>Cache key</strong>: Parameter hash</p></li>
+<li><p><strong>TTL</strong>: Default 1 day</p></li>
 </ul>
 </section>
-<section id="id4">
-<h2>速率限制<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<p>为尊重数据源：</p>
+<section id="rate-limiting">
+<h2>Rate Limiting<a class="headerlink" href="#rate-limiting" title="Link to this heading"></a></h2>
+<p>To respect data sources:</p>
 <ul class="simple">
-<li><p>请求之间自动延时</p></li>
-<li><p>arXiv: 默认 1 秒间隔（可配置）</p></li>
+<li><p>Automatic delay between requests</p></li>
+<li><p>arXiv: Default 1 second interval (configurable)</p></li>
 </ul>
 </section>
-<section id="id5">
-<h2>错误处理<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p>爬虫处理：</p>
+<section id="error-handling">
+<h2>Error Handling<a class="headerlink" href="#error-handling" title="Link to this heading"></a></h2>
+<p>Crawlers handle:</p>
 <ul class="simple">
-<li><p>网络超时（重试）</p></li>
-<li><p>页面布局变化（容错处理）</p></li>
-<li><p>数据缺失（返回部分结果）</p></li>
+<li><p>Network timeouts (retry)</p></li>
+<li><p>Page layout changes (fault tolerance)</p></li>
+<li><p>Missing data (return partial results)</p></li>
 </ul>
 </section>
-<section id="id6">
-<h2>添加新爬虫<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<p>添加新数据源：</p>
+<section id="adding-new-crawlers">
+<h2>Adding New Crawlers<a class="headerlink" href="#adding-new-crawlers" title="Link to this heading"></a></h2>
+<p>To add a new data source:</p>
 <ol class="arabic simple">
-<li><p>创建 <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
-<li><p>继承 <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
-<li><p>实现 <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> 方法</p></li>
-<li><p>在 <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code> 中注册</p></li>
-<li><p>在 <code class="docutils literal notranslate"><span class="pre">main.py</span></code> 中添加命令</p></li>
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
+<li><p>Inherit <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
+<li><p>Implement <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> method</p></li>
+<li><p>Register in <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code></p></li>
+<li><p>Add command in <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
 </ol>
-<p>示例：</p>
+<p>Example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.crawlers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCrawler</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">DBLPCrawler</span><span class="p">(</span><span class="n">BaseCrawler</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">fetch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="c1"># 实现爬取逻辑</span>
+        <span class="c1"># Implement crawling logic</span>
         <span class="k">pass</span>
 </pre></div>
 </div>
 </section>
-<section id="id7">
-<h2>参见<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a></p></li>
 <li><p><a class="reference internal" href="api.html"><span class="doc">API Reference</span></a></p></li>

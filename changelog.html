@@ -41,7 +41,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
@@ -93,63 +93,63 @@
              
   <section id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
-<p>所有 PhD Hunter 的重大更改都将记录在此。</p>
+<p>All major changes to PhD Hunter will be recorded here.</p>
 <section id="id1">
 <h2>[0.1.0] - 2026-04-25<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><dl class="simple">
-<dt><strong>Analyzer 模块</strong> - 基于 LLM 的教授分析与套磁信生成</dt><dd><ul>
-<li><p>首次对话自动生成教授分析报告 + cold email 草稿</p></li>
-<li><p>支持多轮对话修改套磁信</p></li>
-<li><p>基于用户 Profile（CV/PS/论文）个性化生成</p></li>
+<dt><strong>Analyzer Module</strong> - LLM-powered professor analysis and cold email generation</dt><dd><ul>
+<li><p>Auto-generate professor analysis report + cold email draft on first chat</p></li>
+<li><p>Multi-round conversation to refine cold emails</p></li>
+<li><p>Personalized generation based on user Profile (CV/PS/papers)</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt><strong>Profile 页面</strong> - 完整的用户资料管理</dt><dd><ul>
-<li><p>CV/PS PDF 上传与文本提取</p></li>
-<li><p>arXiv 论文链接添加与解析</p></li>
-<li><p>研究偏好设置</p></li>
+<dt><strong>Profile Page</strong> - Complete user profile management</dt><dd><ul>
+<li><p>CV/PS PDF upload and text extraction</p></li>
+<li><p>arXiv paper link addition and parsing</p></li>
+<li><p>Research preference settings</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt><strong>教授匹配度打分</strong> - LLM 驱动的评分系统</dt><dd><ul>
-<li><p>Direction Match Score (1-5): 研究方向匹配度</p></li>
-<li><p>Admission Difficulty Score (1-5): 录取难度评估</p></li>
-<li><p>后台自动轮询打分，支持配置迭代次数</p></li>
+<dt><strong>Professor Matching Scoring</strong> - LLM-driven scoring system</dt><dd><ul>
+<li><p>Direction Match Score (1-5): Research direction matching degree</p></li>
+<li><p>Admission Difficulty Score (1-5): Admission difficulty assessment</p></li>
+<li><p>Background auto-polling scoring with configurable iterations</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt><strong>教授主页抓取</strong> - Selenium + LLM 摘要</dt><dd><ul>
-<li><p>自动抓取教授个人主页</p></li>
-<li><p>AI 提取研究重点、招生状态、内容摘要</p></li>
+<dt><strong>Homepage Crawler</strong> - Selenium + LLM summary</dt><dd><ul>
+<li><p>Automatically scrape professor personal homepages</p></li>
+<li><p>AI extraction of research focus, recruiting status, content summary</p></li>
 </ul>
 </dd>
 </dl>
 </li>
-<li><p><strong>LLM 配置弹窗</strong> - 可配置 API Key、模型、URL、温度等参数</p></li>
+<li><p><strong>LLM Config Modal</strong> - Configure API Key, model, URL, temperature, etc.</p></li>
 <li><dl class="simple">
-<dt><strong>Chat 页面改进</strong></dt><dd><ul>
-<li><p>用户/AI 头像区分</p></li>
-<li><p>消息删除功能</p></li>
-<li><p>“Analyzing…” 加载动画</p></li>
-<li><p>消息自动滚动</p></li>
+<dt><strong>Chat Page Improvements</strong></dt><dd><ul>
+<li><p>User/AI avatar distinction</p></li>
+<li><p>Message deletion feature</p></li>
+<li><p>“Analyzing…” loading animation</p></li>
+<li><p>Auto-scroll messages</p></li>
 </ul>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt><strong>Web 界面改进</strong></dt><dd><ul>
-<li><p>顶栏显示 Avg Match / Avg Diff 统计</p></li>
-<li><p>教授详情中论文标题可跳转 arXiv</p></li>
-<li><p>简化的 Basic Info / Metrics 布局</p></li>
+<dt><strong>Web Interface Improvements</strong></dt><dd><ul>
+<li><p>Top bar displays Avg Match / Avg Diff statistics</p></li>
+<li><p>Professor detail paper titles link to arXiv</p></li>
+<li><p>Simplified Basic Info / Metrics layout</p></li>
 </ul>
 </dd>
 </dl>
@@ -159,9 +159,9 @@
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>新增 <code class="docutils literal notranslate"><span class="pre">api_infra</span></code> 模块统一 LLM 客户端调用</p></li>
-<li><p>新增 <code class="docutils literal notranslate"><span class="pre">utils/pdf_extract.py</span></code> 提取 PDF 文本，避免 scorer 与 analyzer 耦合</p></li>
-<li><p>数据库表增加 <code class="docutils literal notranslate"><span class="pre">direction_match_score</span></code>、<code class="docutils literal notranslate"><span class="pre">admission_difficulty_score</span></code>、<code class="docutils literal notranslate"><span class="pre">homepage_summary</span></code>、<code class="docutils literal notranslate"><span class="pre">messages</span></code> 字段</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">api_infra</span></code> module for unified LLM client calls</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">utils/pdf_extract.py</span></code> for PDF text extraction, decoupling scorer and analyzer</p></li>
+<li><p>Database tables added <code class="docutils literal notranslate"><span class="pre">direction_match_score</span></code>, <code class="docutils literal notranslate"><span class="pre">admission_difficulty_score</span></code>, <code class="docutils literal notranslate"><span class="pre">homepage_summary</span></code>, <code class="docutils literal notranslate"><span class="pre">messages</span></code> fields</p></li>
 </ul>
 </section>
 </section>
@@ -170,17 +170,17 @@
 <section id="id3">
 <h3>Added<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>ArxivCrawler: 按作者搜索论文</p></li>
-<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: 批量获取教授论文</p></li>
-<li><p>CLI 命令 <code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: 数据库查询</p></li>
-<li><p>Web 前端：教授浏览、筛选、优先级标记</p></li>
+<li><p>ArxivCrawler: Search papers by author</p></li>
+<li><p>CLI command <code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: Batch fetch professor papers</p></li>
+<li><p>CLI commands <code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: Database queries</p></li>
+<li><p>Web frontend: Professor browsing, filtering, priority marking</p></li>
 </ul>
 </section>
 <section id="id4">
 <h3>Changed<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>主入口移至根目录 <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
-<li><p>简化项目结构</p></li>
+<li><p>Main entry moved to root <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
+<li><p>Simplified project structure</p></li>
 </ul>
 </section>
 </section>
@@ -189,11 +189,11 @@
 <section id="id6">
 <h3>Added<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>初始项目结构</p></li>
-<li><p>uv 依赖管理</p></li>
-<li><p>Sphinx 文档系统</p></li>
-<li><p>CSRankings 爬虫基础实现</p></li>
-<li><p>SQLite 数据库模型</p></li>
+<li><p>Initial project structure</p></li>
+<li><p>uv dependency management</p></li>
+<li><p>Sphinx documentation system</p></li>
+<li><p>CSRankings crawler basic implementation</p></li>
+<li><p>SQLite database models</p></li>
 </ul>
 </section>
 </section>

@@ -42,21 +42,21 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">快速开始</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">开发流程</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">代码规范</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">添加功能</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">文档</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pull-request">Pull Request 检查清单</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id6">获取帮助</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">许可证</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#code-standards">Code Standards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-features">Adding Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pull-request-checklist">Pull Request Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#license">License</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -88,33 +88,33 @@
              
   <section id="contributing">
 <h1>Contributing<a class="headerlink" href="#contributing" title="Link to this heading"></a></h1>
-<p>感谢你考虑为 PhD Hunter 做贡献！本文档概述了开发流程。</p>
-<section id="id1">
-<h2>快速开始<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>Thank you for considering contributing to PhD Hunter! This document outlines the development workflow.</p>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>Fork 并克隆</strong></p>
+<li><p><strong>Fork and clone</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/your-username/phd-hunter.git
 <span class="nb">cd</span><span class="w"> </span>phd-hunter
 </pre></div>
 </div>
 </li>
-<li><p><strong>设置开发环境</strong></p>
+<li><p><strong>Set up development environment</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 </pre></div>
 </div>
 </li>
-<li><p><strong>创建分支</strong></p>
+<li><p><strong>Create a branch</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>feature/my-feature
 </pre></div>
 </div>
 </li>
 </ol>
 </section>
-<section id="id2">
-<h2>开发流程<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="development-workflow">
+<h2>Development Workflow<a class="headerlink" href="#development-workflow" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>编写代码</strong></p>
-<p>遵循 PEP 8，使用类型提示。</p>
+<li><p><strong>Write code</strong></p>
+<p>Follow PEP 8, use type hints.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">search_professor</span><span class="p">(</span>
@@ -126,19 +126,19 @@
 </pre></div>
 </div>
 </li>
-<li><p><strong>运行测试</strong></p>
+<li><p><strong>Run tests</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-v
 </pre></div>
 </div>
 </li>
-<li><p><strong>代码格式化</strong></p>
+<li><p><strong>Code formatting</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>black<span class="w"> </span>.
 uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.
 </pre></div>
 </div>
 </li>
-<li><p><strong>提交</strong></p>
-<p>遵循 conventional commits:</p>
+<li><p><strong>Commit</strong></p>
+<p>Follow conventional commits:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>feat: add arxiv batch mode
 fix: handle professor not found
 docs: update installation guide
@@ -147,60 +147,60 @@ docs: update installation guide
 </li>
 </ol>
 </section>
-<section id="id3">
-<h2>代码规范<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p><strong>Python</strong>: PEP 8, 88 字符行限制</p>
-<p><strong>类型提示</strong>: 所有公开函数必需</p>
-<p><strong>Docstrings</strong>: Google 风格</p>
-<p><strong>Imports</strong>: 标准库 → 第三方 → 本地</p>
+<section id="code-standards">
+<h2>Code Standards<a class="headerlink" href="#code-standards" title="Link to this heading"></a></h2>
+<p><strong>Python</strong>: PEP 8, 88 character line limit</p>
+<p><strong>Type hints</strong>: Required for all public functions</p>
+<p><strong>Docstrings</strong>: Google style</p>
+<p><strong>Imports</strong>: stdlib -&gt; third-party -&gt; local</p>
 </section>
-<section id="id4">
-<h2>添加功能<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="adding-features">
+<h2>Adding Features<a class="headerlink" href="#adding-features" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>添加新爬虫</strong></p>
+<li><p><strong>Add new crawler</strong></p>
 <ul class="simple">
-<li><p>创建 <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
-<li><p>继承 <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
-<li><p>实现 <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> 方法</p></li>
-<li><p>在 <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code> 注册</p></li>
-<li><p>在 <code class="docutils literal notranslate"><span class="pre">main.py</span></code> 添加命令</p></li>
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
+<li><p>Inherit <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
+<li><p>Implement <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> method</p></li>
+<li><p>Register in <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code></p></li>
+<li><p>Add command in <code class="docutils literal notranslate"><span class="pre">main.py</span></code></p></li>
 </ul>
 </li>
-<li><p><strong>修改 CLI</strong></p>
-<p>在 <code class="docutils literal notranslate"><span class="pre">main.py</span></code> 中添加新的子命令和参数。</p>
+<li><p><strong>Modify CLI</strong></p>
+<p>Add new subcommands and arguments in <code class="docutils literal notranslate"><span class="pre">main.py</span></code>.</p>
 </li>
 </ol>
 </section>
-<section id="id5">
-<h2>文档<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p>构建文档：</p>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
+<p>Build documentation:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>docs
 make<span class="w"> </span>html
 </pre></div>
 </div>
-<p>提交代码时同时更新文档。</p>
+<p>Update documentation when submitting code.</p>
 </section>
-<section id="pull-request">
-<h2>Pull Request 检查清单<a class="headerlink" href="#pull-request" title="Link to this heading"></a></h2>
+<section id="pull-request-checklist">
+<h2>Pull Request Checklist<a class="headerlink" href="#pull-request-checklist" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>[ ] 代码符合规范</p></li>
-<li><p>[ ] 测试通过</p></li>
-<li><p>[ ] 类型提示完整</p></li>
-<li><p>[ ] Docstrings 已更新</p></li>
-<li><p>[ ] 文档已更新</p></li>
-<li><p>[ ] CHANGELOG 已更新</p></li>
+<li><p>[ ] Code follows standards</p></li>
+<li><p>[ ] Tests pass</p></li>
+<li><p>[ ] Type hints are complete</p></li>
+<li><p>[ ] Docstrings updated</p></li>
+<li><p>[ ] Documentation updated</p></li>
+<li><p>[ ] CHANGELOG updated</p></li>
 </ul>
 </section>
-<section id="id6">
-<h2>获取帮助<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="getting-help">
+<h2>Getting Help<a class="headerlink" href="#getting-help" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Issues: <a class="reference external" href="https://github.com/your-org/phd-hunter/issues">https://github.com/your-org/phd-hunter/issues</a></p></li>
-<li><p>邮箱: <a class="reference external" href="mailto:team&#37;&#52;&#48;phdhunter&#46;dev">team<span>&#64;</span>phdhunter<span>&#46;</span>dev</a></p></li>
+<li><p>Email: <a class="reference external" href="mailto:team&#37;&#52;&#48;phdhunter&#46;dev">team<span>&#64;</span>phdhunter<span>&#46;</span>dev</a></p></li>
 </ul>
 </section>
-<section id="id7">
-<h2>许可证<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
-<p>MIT License - 详见 <code class="docutils literal notranslate"><span class="pre">LICENSE</span></code> 文件。</p>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
+<p>MIT License - see <code class="docutils literal notranslate"><span class="pre">LICENSE</span></code> file.</p>
 </section>
 </section>
 

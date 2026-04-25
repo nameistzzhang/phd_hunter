@@ -42,36 +42,37 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#web-rest-api">Web REST API</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id1">命令行参考</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id2">命令</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-reference">Command Line Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#commands">Commands</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#api">数据库 API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#database">Database 类</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id3">主要方法</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-api">Database API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#database-class">Database Class</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#main-methods">Main Methods</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">模型参考</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#model-reference">Model Reference</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#professor">Professor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#paper">Paper</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#university">University</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">爬虫基类</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#crawler-base-class">Crawler Base Class</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#csrankingscrawler">CSRankingsCrawler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#arxivcrawler">ArxivCrawler</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id6">参见</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#analyzer">Analyzer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -104,140 +105,206 @@
              
   <section id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
-<p>本项目提供两种 API：命令行接口 (CLI) 和 Web REST API (Flask)。</p>
+<p>This project provides two types of APIs: command line interface (CLI) and web REST API (Flask).</p>
 <section id="web-rest-api">
 <h2>Web REST API<a class="headerlink" href="#web-rest-api" title="Link to this heading"></a></h2>
-<p><strong>基础路径</strong>: <code class="docutils literal notranslate"><span class="pre">http://localhost:5000</span></code></p>
-<p>Web 前端通过以下 JSON API 与后端交互：</p>
-<table class="docutils align-default" id="id7">
-<caption><span class="caption-text">API 端点</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<p><strong>Base URL</strong>: <code class="docutils literal notranslate"><span class="pre">http://localhost:8080</span></code></p>
+<p>The web frontend interacts with the backend through the following JSON APIs:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">API Endpoints</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <thead>
-<tr class="row-odd"><th class="head"><p>方法</p></th>
-<th class="head"><p>路径</p></th>
-<th class="head"><p>说明</p></th>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>Path</p></th>
+<th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">/</span></code></p></td>
-<td><p>服务主页（返回 <code class="docutils literal notranslate"><span class="pre">index.html</span></code>）</p></td>
+<td><p>Serve homepage (return <code class="docutils literal notranslate"><span class="pre">index.html</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">/api/stats</span></code></p></td>
-<td><p>获取统计信息（教授数、论文数、平均分等）</p></td>
+<td><p>Get statistics (professor count, paper count, avg scores, etc.)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">/api/professors</span></code></p></td>
-<td><p>获取所有教授列表</p></td>
+<td><p>Get all professor list</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/professor/&lt;int:id&gt;</span></code></p></td>
+<td><p>Get single professor details</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/professor/&lt;int:id&gt;/priority</span></code></p></td>
+<td><p>Update professor priority</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/chat/&lt;int:id&gt;</span></code></p></td>
+<td><p>Get chat messages for a professor</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/chat/&lt;int:id&gt;</span></code></p></td>
+<td><p>Send message or trigger first-time analysis</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DELETE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/chat/&lt;int:id&gt;/message</span></code></p></td>
+<td><p>Delete a chat message</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/hound-config</span></code></p></td>
+<td><p>Get LLM configuration</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">/api/professor/&lt;int:id&gt;/priority</span></code></p></td>
-<td><p>更新教授的优先级</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/hound-config</span></code></p></td>
+<td><p>Update LLM configuration</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GET</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/profile</span></code></p></td>
+<td><p>Get applicant profile</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/profile</span></code></p></td>
+<td><p>Update applicant profile</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/profile/cv</span></code></p></td>
+<td><p>Upload CV PDF</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/profile/ps</span></code></p></td>
+<td><p>Upload PS PDF</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/profile/papers</span></code></p></td>
+<td><p>Add arXiv paper links</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">POST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/api/arxiv/resolve</span></code></p></td>
+<td><p>Resolve arXiv URL to metadata</p></td>
 </tr>
 </tbody>
 </table>
-<p>详细示例：</p>
+<p>Detailed examples:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 
-<span class="c1"># 获取统计信息</span>
-<span class="n">stats</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:5000/api/stats&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;教授数: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;professors&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, 论文数: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;papers&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1"># Get statistics</span>
+<span class="n">stats</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:8080/api/stats&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Professors: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;professors&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, Papers: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;papers&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="c1"># 获取教授列表</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:5000/api/professors&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+<span class="c1"># Get professor list</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;http://localhost:8080/api/professors&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
 <span class="n">professors</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;professors&#39;</span><span class="p">]</span>
 
-<span class="c1"># 更新优先级</span>
+<span class="c1"># Update priority</span>
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-    <span class="s1">&#39;http://localhost:5000/api/professor/1/priority&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;http://localhost:8080/api/professor/1/priority&#39;</span><span class="p">,</span>
     <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;priority&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
 <span class="p">)</span>
-<span class="c1"># 返回: {&quot;success&quot;: true, &quot;priority&quot;: 1}</span>
+<span class="c1"># Returns: {&quot;success&quot;: true, &quot;priority&quot;: 1}</span>
+
+<span class="c1"># Send chat message</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+    <span class="s1">&#39;http://localhost:8080/api/chat/1&#39;</span><span class="p">,</span>
+    <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;message&#39;</span><span class="p">:</span> <span class="s1">&#39;Can you make the email shorter?&#39;</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="c1"># Returns: {&quot;success&quot;: true, &quot;response&quot;: &quot;...&quot;}</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Web 服务器入口位于 <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/app.py</span></code>。
-静态文件（HTML/CSS/JS）托管在 <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/static/</span></code>。</p>
+<p>Web server entry is at <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/app.py</span></code>.
+Static files (HTML/CSS/JS) are hosted at <code class="docutils literal notranslate"><span class="pre">src/phd_hunter/frontend/static/</span></code>.</p>
 </div>
 </section>
-<section id="id1">
-<h2>命令行参考<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>主程序入口: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span></code></p>
-<section id="id2">
-<h3>命令<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<section id="command-line-reference">
+<h2>Command Line Reference<a class="headerlink" href="#command-line-reference" title="Link to this heading"></a></h2>
+<p>Main entry: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span></code></p>
+<section id="commands">
+<h3>Commands<a class="headerlink" href="#commands" title="Link to this heading"></a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>phd-hunter crawl [OPTIONS]
 phd-hunter fetch-papers [OPTIONS]
 phd-hunter stats
 phd-hunter list [OPTIONS]
 </pre></div>
 </div>
-<p>详细信息请参考 <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a>。</p>
+<p>For details, see <a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a>.</p>
 </section>
 </section>
-<section id="api">
-<h2>数据库 API<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
-<p>直接使用 <code class="docutils literal notranslate"><span class="pre">phd_hunter.database.Database</span></code> 类进行编程访问。</p>
-<p>快速示例：</p>
+<section id="database-api">
+<h2>Database API<a class="headerlink" href="#database-api" title="Link to this heading"></a></h2>
+<p>Direct programmatic access via <code class="docutils literal notranslate"><span class="pre">phd_hunter.database.Database</span></code> class.</p>
+<p>Quick example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">Database</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">phd_hunter.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Professor</span><span class="p">,</span> <span class="n">University</span>
 
 <span class="n">db</span> <span class="o">=</span> <span class="n">Database</span><span class="p">(</span><span class="n">db_path</span><span class="o">=</span><span class="s2">&quot;phd_hunter.db&quot;</span><span class="p">)</span>
 
-<span class="c1"># 列出教授</span>
+<span class="c1"># List professors</span>
 <span class="n">professors</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">list_professors</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
-<span class="c1"># 获取单个教授</span>
+<span class="c1"># Get single professor</span>
 <span class="n">prof</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_professor</span><span class="p">(</span><span class="n">prof_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="c1"># 获取教授的论文</span>
+<span class="c1"># Get professor papers</span>
 <span class="n">papers</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get_papers_by_professor</span><span class="p">(</span><span class="n">professor_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="c1"># 导出为 JSON</span>
+<span class="c1"># Export to JSON</span>
 <span class="n">db</span><span class="o">.</span><span class="n">export_to_json</span><span class="p">(</span><span class="s2">&quot;output.json&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<section id="database">
-<h3>Database 类<a class="headerlink" href="#database" title="Link to this heading"></a></h3>
-<section id="id3">
-<h4>主要方法<a class="headerlink" href="#id3" title="Link to this heading"></a></h4>
-<p><strong>连接与初始化</strong></p>
+<section id="database-class">
+<h3>Database Class<a class="headerlink" href="#database-class" title="Link to this heading"></a></h3>
+<section id="main-methods">
+<h4>Main Methods<a class="headerlink" href="#main-methods" title="Link to this heading"></a></h4>
+<p><strong>Connection and Initialization</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">__init__(db_path:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">&quot;phd_hunter.db&quot;)</span></code>
-初始化数据库连接并创建表。</p></li>
+Initialize database connection and create tables.</p></li>
 </ul>
-<p><strong>教授操作</strong></p>
+<p><strong>Professor Operations</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">list_professors(status,</span> <span class="pre">min_match_score,</span> <span class="pre">limit)</span> <span class="pre">-&gt;</span> <span class="pre">List[Dict]</span></code>
-列出教授，支持过滤。</p></li>
+List professors with filtering support.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">get_professor(prof_id)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
-根据 ID 获取教授。</p></li>
+Get professor by ID.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">get_professor_by_name(name,</span> <span class="pre">university_name)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
-根据姓名（可选的大学）获取教授。</p></li>
+Get professor by name (optional university).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">upsert_professor(prof:</span> <span class="pre">Professor,</span> <span class="pre">university:</span> <span class="pre">University)</span> <span class="pre">-&gt;</span> <span class="pre">int</span></code>
-插入或更新教授记录，返回数据库 ID。</p></li>
+Insert or update professor record, return database ID.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">update_professor_scores(professor_id,</span> <span class="pre">direction_match,</span> <span class="pre">admission_difficulty)</span></code>
+Update professor matching scores.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">update_professor_messages(professor_id,</span> <span class="pre">messages)</span></code>
+Update professor chat messages.</p></li>
 </ul>
-<p><strong>论文操作</strong></p>
+<p><strong>Paper Operations</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">get_papers_by_professor(professor_id,</span> <span class="pre">limit)</span> <span class="pre">-&gt;</span> <span class="pre">List[Dict]</span></code>
-获取某教授的所有论文。</p></li>
+Get all papers for a professor.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">upsert_paper(professor_id,</span> <span class="pre">paper_data)</span> <span class="pre">-&gt;</span> <span class="pre">int</span></code>
-插入或更新论文记录。</p></li>
+Insert or update paper record.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">get_professor_with_papers(professor_id)</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
-获取教授及其所有论文（关联查询）。</p></li>
+Get professor and all papers (joined query).</p></li>
 </ul>
-<p><strong>统计与导出</strong></p>
+<p><strong>Profile Operations</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get_applicant_profile()</span> <span class="pre">-&gt;</span> <span class="pre">Optional[Dict]</span></code>
+Get applicant profile.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">upsert_applicant_profile(data)</span></code>
+Insert or update applicant profile.</p></li>
+</ul>
+<p><strong>Statistics and Export</strong></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">get_stats()</span> <span class="pre">-&gt;</span> <span class="pre">Dict</span></code>
-获取数据库统计信息。</p></li>
+Get database statistics.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">export_to_json(output_path)</span></code>
-导出所有数据为 JSON 文件。</p></li>
+Export all data to JSON file.</p></li>
 </ul>
 </section>
 </section>
 </section>
-<section id="id4">
-<h2>模型参考<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="model-reference">
+<h2>Model Reference<a class="headerlink" href="#model-reference" title="Link to this heading"></a></h2>
 <section id="professor">
 <h3>Professor<a class="headerlink" href="#professor" title="Link to this heading"></a></h3>
 </section>
@@ -248,8 +315,8 @@ phd-hunter list [OPTIONS]
 <h3>University<a class="headerlink" href="#university" title="Link to this heading"></a></h3>
 </section>
 </section>
-<section id="id5">
-<h2>爬虫基类<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="crawler-base-class">
+<h2>Crawler Base Class<a class="headerlink" href="#crawler-base-class" title="Link to this heading"></a></h2>
 <section id="csrankingscrawler">
 <h3>CSRankingsCrawler<a class="headerlink" href="#csrankingscrawler" title="Link to this heading"></a></h3>
 </section>
@@ -257,8 +324,11 @@ phd-hunter list [OPTIONS]
 <h3>ArxivCrawler<a class="headerlink" href="#arxivcrawler" title="Link to this heading"></a></h3>
 </section>
 </section>
-<section id="id6">
-<h2>参见<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="analyzer">
+<h2>Analyzer<a class="headerlink" href="#analyzer" title="Link to this heading"></a></h2>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="architecture.html"><span class="doc">Architecture Overview</span></a></p></li>
 <li><p><a class="reference internal" href="crawlers.html"><span class="doc">Crawlers</span></a></p></li>

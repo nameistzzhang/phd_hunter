@@ -42,17 +42,17 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">目录:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id1">系统设计</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id2">核心组件</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">数据流程</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id4">配置</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">扩展性</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id6">开发流程</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">参见</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#system-design">System Design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-flow">Data Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="crawlers.html">Crawlers</a></li>
@@ -87,177 +87,235 @@
              
   <section id="architecture-overview">
 <h1>Architecture Overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h1>
-<p>本文档描述 PhD Hunter 的系统架构。</p>
-<section id="id1">
-<h2>系统设计<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库、Web 界面和命令行接口四个部分。</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>┌────────────────────────────────────────────────────┐
-│    Web Frontend (Flask + HTML/CSS/JS)              │
-│    • Professor cards with priority &amp; filters       │
-│    • Real-time filtering &amp; sorting                 │
-│    • Modal detail view with papers                 │
-└────────────────────┬───────────────────────────────┘
-                     │ REST API
-    ┌────────────────┼────────────────┐
-    ▼                ▼                ▼
-┌─────────┐    ┌──────────┐    ┌─────────┐
-│ CLI     │    │  Arxiv  │    │ SQLite  │
-│(main.py)│    │ Crawler │    │Database │
-└─────────┘    └──────────┘    └─────────┘
-      │
-      ▼
-┌─────────────┐
-│ CSRankings  │
-│   Crawler   │
-└─────────────┘
+<p>This document describes the system architecture of PhD Hunter.</p>
+<section id="system-design">
+<h2>System Design<a class="headerlink" href="#system-design" title="Link to this heading"></a></h2>
+<p>PhD Hunter adopts a clean modular design, with four core parts: crawlers, database, web frontend, and command line interface.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>+------------------------------------------------------+
+|    Web Frontend (Flask + HTML/CSS/JS)                |
+|    - Professor cards with priority &amp; filters         |
+|    - Real-time filtering &amp; sorting                   |
+|    - AI chat for analysis &amp; cold email generation    |
+|    - Profile page for CV/PS and arXiv papers         |
++----------------------+-------------------------------+
+                       | REST API
+      +----------------+----------------+
+      |                |                |
+      v                v                v
++---------+    +----------+    +---------+
+| CLI     |    | Arxiv    |    | SQLite  |
+|(main.py)|    | Crawler  |    |Database |
++---------+    +----------+    +---------+
+      |
+      v
++------------------+
+| CSRankings       |
+| Crawler          |
++------------------+
+| Homepage         |
+| Crawler          |
++------------------+
 </pre></div>
 </div>
 </section>
-<section id="id2">
-<h2>核心组件<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="core-components">
+<h2>Core Components<a class="headerlink" href="#core-components" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>Web 前端界面</strong> (frontend/)</p>
-<p>Flask + 原生 HTML/CSS/JavaScript 构建的可视化界面：</p>
+<li><p><strong>Web Frontend</strong> (frontend/)</p>
+<p>Visualization interface built with Flask + vanilla HTML/CSS/JavaScript:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">app.py</span></code>: Flask API 服务器，提供 JSON 数据接口</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">index.html</span></code>: 主页面，包含导航栏、筛选栏、教授列表和详情弹窗</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">styles.css</span></code>: 黑白简约风格样式表</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">app.js</span></code>: 前端逻辑（数据加载、筛选、优先级更新、弹窗显示）</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">app.py</span></code>: Flask API server providing JSON data endpoints</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index.html</span></code>: Main page with navigation bar, filter bar, professor list, and detail modal</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">styles.css</span></code>: Black-and-white minimalist stylesheet</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">app.js</span></code>: Frontend logic (data loading, filtering, priority update, modal display, chat)</p></li>
 </ul>
-<p>主要功能：
-- 教授卡片展示（分数、论文数、研究领域、优先级色条）
-- 三维筛选（Priority / Research Area / University）
-- 优先级下拉菜单修改（实时保存到数据库）
-- 教授详情弹窗（基本信息、指标、论文列表）</p>
+<p>Main features:
+- Professor card display (score, paper count, research areas, priority color bar)
+- Multi-dimensional filtering (Priority / Research Area / University / Score)
+- Priority dropdown modification (real-time save to database)
+- Professor detail modal (basic info, metrics, paper list with arXiv links)
+- AI Chat page (auto-generated analysis report + cold email draft)
+- Profile page (CV/PS upload, arXiv paper management, research preferences)
+- Settings modal (LLM API key, model, temperature configuration)</p>
 </li>
-<li><p><strong>CLI 入口</strong> (main.py)</p>
-<p>命令行主程序，提供三个子命令：</p>
+<li><p><strong>CLI Entry</strong> (main.py)</p>
+<p>Command-line main program providing subcommands:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">crawl</span></code>: 从 CSRankings 爬取教授信息</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: 从 arXiv 获取教授论文</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: 查看数据库内容</p></li>
-</ul>
-</li>
-</ol>
-<ol class="arabic" start="2">
-<li><p><strong>爬虫模块</strong> (crawlers/)</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">CSRankingsCrawler</span></code>: 使用 Selenium 爬取 CSRankings.org 的大学排名和教授列表</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ArxivCrawler</span></code>: 使用 arXiv API 按作者搜索论文</p></li>
-</ul>
-<p>所有爬虫继承自 <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code>，支持缓存机制。</p>
-</li>
-<li><p><strong>数据库</strong> (database.py)</p>
-<p>SQLite 数据库，包含：</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">professors</span></code> 表: 教授基本信息</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">papers</span></code> 表: 论文元数据</p></li>
-</ul>
-<p>提供完整的 CRUD 操作和数据导出功能。</p>
-</li>
-<li><p><strong>数据模型</strong> (models.py)</p>
-<p>Pydantic 模型定义：</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">Professor</span></code>: 教授信息</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Paper</span></code>: 论文信息</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">University</span></code>: 大学信息</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crawl</span></code>: Crawl professor information from CSRankings</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fetch-papers</span></code>: Fetch professor papers from arXiv</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stats</span></code> / <code class="docutils literal notranslate"><span class="pre">list</span></code>: View database contents</p></li>
 </ul>
 </li>
-<li><p><strong>工具模块</strong> (utils/)</p>
+<li><p><strong>Crawler Module</strong> (crawlers/)</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">logger.py</span></code>: 结构化日志配置</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">helpers.py</span></code>: 通用辅助函数</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CSRankingsCrawler</span></code>: Use Selenium to crawl CSRankings.org university rankings and professor lists</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ArxivCrawler</span></code>: Use arXiv API to search papers by author</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HomepageCrawler</span></code>: Use Selenium to scrape professor homepages and generate AI summaries</p></li>
+</ul>
+<p>All crawlers inherit from <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code> with caching support.</p>
+</li>
+<li><p><strong>Analyzer Module</strong> (analyzer/)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">analyzer.py</span></code>: Core logic for professor analysis and cold email generation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prompts.py</span></code>: Prompt templates for LLM</p></li>
+</ul>
+<p>Based on user Profile (CV/PS/papers) and professor data (homepage summary/papers), generate:
+- Professor research direction analysis
+- Matching points analysis
+- Cold email writing guidelines
+- Complete cold email draft</p>
+</li>
+<li><p><strong>Scorer Module</strong> (hound/)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scorer.py</span></code>: LLM-based professor matching scoring</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scorer_daemon.py</span></code>: Background daemon for automatic scoring</p></li>
+</ul>
+<p>Two scores (1-5):
+- Direction Match: Research direction matching degree
+- Admission Difficulty: Admission difficulty assessment</p>
+</li>
+<li><p><strong>Database</strong> (database.py)</p>
+<p>SQLite database containing:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">professors</span></code> table: Professor basic information, scores, homepage summary, chat messages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">papers</span></code> table: Paper metadata</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">applicant_profile</span></code> table: User CV/PS, research preferences, arXiv papers</p></li>
+</ul>
+<p>Provides complete CRUD operations and data export functionality.</p>
+</li>
+<li><p><strong>Data Models</strong> (models.py)</p>
+<p>Pydantic model definitions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Professor</span></code>: Professor information</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Paper</span></code>: Paper information</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">University</span></code>: University information</p></li>
+</ul>
+</li>
+<li><p><strong>Utility Module</strong> (utils/)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">logger.py</span></code>: Structured logging configuration</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">helpers.py</span></code>: General helper functions</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pdf_extract.py</span></code>: PDF text extraction and Profile building</p></li>
+</ul>
+</li>
+<li><p><strong>API Infrastructure</strong> (api_infra/)</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">core/client.py</span></code>: Unified LLM client supporting multiple providers</p></li>
 </ul>
 </li>
 </ol>
 </section>
-<section id="id3">
-<h2>数据流程<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="data-flow">
+<h2>Data Flow<a class="headerlink" href="#data-flow" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p><strong>爬取阶段</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User → main.py crawl
-   → CSRankingsCrawler.fetch()
-   → Selenium 打开浏览器
-   → 解析 HTML 提取教授列表
-   → Database.upsert_professor()
-   → SQLite 保存
+<li><p><strong>Crawl Phase</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">User</span> <span class="o">-&gt;</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">crawl</span>
+   <span class="o">-&gt;</span> <span class="n">CSRankingsCrawler</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">Selenium</span> <span class="n">opens</span> <span class="n">browser</span>
+   <span class="o">-&gt;</span> <span class="n">Parse</span> <span class="n">HTML</span> <span class="n">to</span> <span class="n">extract</span> <span class="n">professor</span> <span class="nb">list</span>
+   <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">upsert_professor</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">SQLite</span> <span class="n">save</span>
 </pre></div>
 </div>
 </li>
-<li><p><strong>论文获取阶段</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User → main.py fetch-papers
-   → Database.list_professors()
-   → 对每位教授:
-      ArxivCrawler.fetch(professor)
-      → arxiv.Search 查询
-      → 解析返回结果
-      → Database.upsert_paper()
-   → SQLite 保存
+<li><p><strong>Paper Fetch Phase</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">User</span> <span class="o">-&gt;</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">fetch</span><span class="o">-</span><span class="n">papers</span>
+   <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">list_professors</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">For</span> <span class="n">each</span> <span class="n">professor</span><span class="p">:</span>
+      <span class="n">ArxivCrawler</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">professor</span><span class="p">)</span>
+      <span class="o">-&gt;</span> <span class="n">arxiv</span><span class="o">.</span><span class="n">Search</span> <span class="n">query</span>
+      <span class="o">-&gt;</span> <span class="n">Parse</span> <span class="n">returned</span> <span class="n">results</span>
+      <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">upsert_paper</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">SQLite</span> <span class="n">save</span>
 </pre></div>
 </div>
 </li>
-<li><p><strong>Web 界面查询阶段</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Browser → Flask app.py (GET /api/professors)
-   → Database.list_professors()
-   → JSON 返回教授列表
-   → JavaScript 渲染卡片 + 筛选
+<li><p><strong>Homepage Crawl Phase</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">User</span> <span class="o">-&gt;</span> <span class="n">HomepageCrawler</span>
+   <span class="o">-&gt;</span> <span class="n">Selenium</span> <span class="n">opens</span> <span class="n">professor</span> <span class="n">homepage</span>
+   <span class="o">-&gt;</span> <span class="n">Extract</span> <span class="n">page</span> <span class="n">content</span>
+   <span class="o">-&gt;</span> <span class="n">LLM</span> <span class="n">generates</span> <span class="n">summary</span>
+   <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">update_homepage_summary</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Scoring Phase</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ScorerDaemon</span> <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">list_unscored_professors</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">For</span> <span class="n">each</span> <span class="n">professor</span><span class="p">:</span>
+      <span class="n">Scorer</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="o">-&gt;</span> <span class="n">LLM</span> <span class="n">evaluates</span> <span class="n">direction</span> <span class="n">match</span> <span class="o">&amp;</span> <span class="n">difficulty</span>
+      <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">update_professor_scores</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Web Interface Query Phase</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Browser</span> <span class="o">-&gt;</span> <span class="n">Flask</span> <span class="n">app</span><span class="o">.</span><span class="n">py</span> <span class="p">(</span><span class="n">GET</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">professors</span><span class="p">)</span>
+   <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">list_professors</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">JSON</span> <span class="n">returns</span> <span class="n">professor</span> <span class="nb">list</span>
+   <span class="o">-&gt;</span> <span class="n">JavaScript</span> <span class="n">renders</span> <span class="n">cards</span> <span class="o">+</span> <span class="n">filters</span>
 
-Browser → Flask app.py (POST /api/professor/&lt;id&gt;/priority)
-   → Database.update_professor_priority()
-   → 更新数据库并返回最新列表
+<span class="n">Browser</span> <span class="o">-&gt;</span> <span class="n">Flask</span> <span class="n">app</span><span class="o">.</span><span class="n">py</span> <span class="p">(</span><span class="n">POST</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">chat</span><span class="o">/&lt;</span><span class="nb">id</span><span class="o">&gt;</span><span class="p">)</span>
+   <span class="o">-&gt;</span> <span class="n">Analyzer</span><span class="o">.</span><span class="n">chat_with_professor</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">LLM</span> <span class="n">generates</span> <span class="n">response</span>
+   <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">update_professor_messages</span><span class="p">()</span>
 </pre></div>
 </div>
 </li>
-<li><p><strong>命令行查询阶段</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>User → main.py stats / list
-   → Database.get_stats() / list_professors()
-   → 格式化输出
+<li><p><strong>Command Line Query Phase</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">User</span> <span class="o">-&gt;</span> <span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">stats</span> <span class="o">/</span> <span class="nb">list</span>
+   <span class="o">-&gt;</span> <span class="n">Database</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span> <span class="o">/</span> <span class="n">list_professors</span><span class="p">()</span>
+   <span class="o">-&gt;</span> <span class="n">Formatted</span> <span class="n">output</span>
 </pre></div>
 </div>
 </li>
 </ol>
 </section>
-<section id="id4">
-<h2>配置<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<p>当前版本无需配置文件，所有参数通过命令行传递。</p>
-<p>未来可能的配置项：</p>
-<ul class="simple">
-<li><p>数据库路径</p></li>
-<li><p>爬虫延迟时间</p></li>
-<li><p>缓存设置</p></li>
-<li><p>日志级别</p></li>
-</ul>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<p>LLM configuration is stored in <code class="docutils literal notranslate"><span class="pre">hound_config.json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;api_key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;deepseek-v3.2&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;provider&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yunwu&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://yunwu.ai/v1&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;temperature&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.6</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_tokens&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">800</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;scoring_iterations&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;nickname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;YourName&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
-<section id="id5">
-<h2>扩展性<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p>添加新爬虫：</p>
+<section id="extensibility">
+<h2>Extensibility<a class="headerlink" href="#extensibility" title="Link to this heading"></a></h2>
+<p>Adding new crawlers:</p>
 <ol class="arabic simple">
-<li><p>创建 <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
-<li><p>继承 <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
-<li><p>实现 <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> 方法</p></li>
-<li><p>在 <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code> 中注册</p></li>
-<li><p>在 main.py 中添加对应命令</p></li>
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">crawlers/newsource.py</span></code></p></li>
+<li><p>Inherit <code class="docutils literal notranslate"><span class="pre">BaseCrawler</span></code></p></li>
+<li><p>Implement <code class="docutils literal notranslate"><span class="pre">fetch()</span></code> method</p></li>
+<li><p>Register in <code class="docutils literal notranslate"><span class="pre">crawlers/__init__.py</span></code></p></li>
+<li><p>Add corresponding command in main.py</p></li>
 </ol>
-<p>示例：</p>
+<p>Example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCrawler</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">DBLPCrawler</span><span class="p">(</span><span class="n">BaseCrawler</span><span class="p">):</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">fetch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="c1"># 实现爬取逻辑</span>
+        <span class="c1"># Implement crawling logic</span>
         <span class="k">pass</span>
 </pre></div>
 </div>
 </section>
-<section id="id6">
-<h2>开发流程<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="development-workflow">
+<h2>Development Workflow<a class="headerlink" href="#development-workflow" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p>修改代码</p></li>
-<li><p>运行验证: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span> <span class="pre">...</span></code></p></li>
-<li><p>提交变更</p></li>
+<li><p>Modify code</p></li>
+<li><p>Run validation: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">main.py</span> <span class="pre">...</span></code></p></li>
+<li><p>Submit changes</p></li>
 </ol>
 </section>
-<section id="id7">
-<h2>参见<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="crawlers.html"><span class="doc">Crawlers</span></a></p></li>
 <li><p><a class="reference internal" href="api.html"><span class="doc">API Reference</span></a></p></li>

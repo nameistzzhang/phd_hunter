@@ -1,162 +1,224 @@
 Architecture Overview
 =====================
 
-本文档描述 PhD Hunter 的系统架构。
+This document describes the system architecture of PhD Hunter.
 
-系统设计
---------
+System Design
+-------------
 
-PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库、Web 界面和命令行接口四个部分。
+PhD Hunter adopts a clean modular design, with four core parts: crawlers, database, web frontend, and command line interface.
 
 .. code-block:: text
 
-   ┌────────────────────────────────────────────────────┐
-   │    Web Frontend (Flask + HTML/CSS/JS)              │
-   │    • Professor cards with priority & filters       │
-   │    • Real-time filtering & sorting                 │
-   │    • Modal detail view with papers                 │
-   └────────────────────┬───────────────────────────────┘
-                        │ REST API
-       ┌────────────────┼────────────────┐
-       ▼                ▼                ▼
-   ┌─────────┐    ┌──────────┐    ┌─────────┐
-   │ CLI     │    │  Arxiv  │    │ SQLite  │
-   │(main.py)│    │ Crawler │    │Database │
-   └─────────┘    └──────────┘    └─────────┘
-         │
-         ▼
-   ┌─────────────┐
-   │ CSRankings  │
-   │   Crawler   │
-   └─────────────┘
+   +------------------------------------------------------+
+   |    Web Frontend (Flask + HTML/CSS/JS)                |
+   |    - Professor cards with priority & filters         |
+   |    - Real-time filtering & sorting                   |
+   |    - AI chat for analysis & cold email generation    |
+   |    - Profile page for CV/PS and arXiv papers         |
+   +----------------------+-------------------------------+
+                          | REST API
+         +----------------+----------------+
+         |                |                |
+         v                v                v
+   +---------+    +----------+    +---------+
+   | CLI     |    | Arxiv    |    | SQLite  |
+   |(main.py)|    | Crawler  |    |Database |
+   +---------+    +----------+    +---------+
+         |
+         v
+   +------------------+
+   | CSRankings       |
+   | Crawler          |
+   +------------------+
+   | Homepage         |
+   | Crawler          |
+   +------------------+
 
-核心组件
---------
+Core Components
+---------------
 
-1. **Web 前端界面** (frontend/)
+1. **Web Frontend** (frontend/)
 
-   Flask + 原生 HTML/CSS/JavaScript 构建的可视化界面：
+   Visualization interface built with Flask + vanilla HTML/CSS/JavaScript:
 
-   - ``app.py``: Flask API 服务器，提供 JSON 数据接口
-   - ``index.html``: 主页面，包含导航栏、筛选栏、教授列表和详情弹窗
-   - ``styles.css``: 黑白简约风格样式表
-   - ``app.js``: 前端逻辑（数据加载、筛选、优先级更新、弹窗显示）
+   - ``app.py``: Flask API server providing JSON data endpoints
+   - ``index.html``: Main page with navigation bar, filter bar, professor list, and detail modal
+   - ``styles.css``: Black-and-white minimalist stylesheet
+   - ``app.js``: Frontend logic (data loading, filtering, priority update, modal display, chat)
 
-   主要功能：
-   - 教授卡片展示（分数、论文数、研究领域、优先级色条）
-   - 三维筛选（Priority / Research Area / University）
-   - 优先级下拉菜单修改（实时保存到数据库）
-   - 教授详情弹窗（基本信息、指标、论文列表）
+   Main features:
+   - Professor card display (score, paper count, research areas, priority color bar)
+   - Multi-dimensional filtering (Priority / Research Area / University / Score)
+   - Priority dropdown modification (real-time save to database)
+   - Professor detail modal (basic info, metrics, paper list with arXiv links)
+   - AI Chat page (auto-generated analysis report + cold email draft)
+   - Profile page (CV/PS upload, arXiv paper management, research preferences)
+   - Settings modal (LLM API key, model, temperature configuration)
 
-2. **CLI 入口** (main.py)
+2. **CLI Entry** (main.py)
 
-   命令行主程序，提供三个子命令：
+   Command-line main program providing subcommands:
 
-   - ``crawl``: 从 CSRankings 爬取教授信息
-   - ``fetch-papers``: 从 arXiv 获取教授论文
-   - ``stats`` / ``list``: 查看数据库内容
+   - ``crawl``: Crawl professor information from CSRankings
+   - ``fetch-papers``: Fetch professor papers from arXiv
+   - ``stats`` / ``list``: View database contents
 
-2. **爬虫模块** (crawlers/)
+3. **Crawler Module** (crawlers/)
 
-   - ``CSRankingsCrawler``: 使用 Selenium 爬取 CSRankings.org 的大学排名和教授列表
-   - ``ArxivCrawler``: 使用 arXiv API 按作者搜索论文
+   - ``CSRankingsCrawler``: Use Selenium to crawl CSRankings.org university rankings and professor lists
+   - ``ArxivCrawler``: Use arXiv API to search papers by author
+   - ``HomepageCrawler``: Use Selenium to scrape professor homepages and generate AI summaries
 
-   所有爬虫继承自 ``BaseCrawler``，支持缓存机制。
+   All crawlers inherit from ``BaseCrawler`` with caching support.
 
-3. **数据库** (database.py)
+4. **Analyzer Module** (analyzer/)
 
-   SQLite 数据库，包含：
+   - ``analyzer.py``: Core logic for professor analysis and cold email generation
+   - ``prompts.py``: Prompt templates for LLM
 
-   - ``professors`` 表: 教授基本信息
-   - ``papers`` 表: 论文元数据
+   Based on user Profile (CV/PS/papers) and professor data (homepage summary/papers), generate:
+   - Professor research direction analysis
+   - Matching points analysis
+   - Cold email writing guidelines
+   - Complete cold email draft
 
-   提供完整的 CRUD 操作和数据导出功能。
+5. **Scorer Module** (hound/)
 
-4. **数据模型** (models.py)
+   - ``scorer.py``: LLM-based professor matching scoring
+   - ``scorer_daemon.py``: Background daemon for automatic scoring
 
-   Pydantic 模型定义：
+   Two scores (1-5):
+   - Direction Match: Research direction matching degree
+   - Admission Difficulty: Admission difficulty assessment
 
-   - ``Professor``: 教授信息
-   - ``Paper``: 论文信息
-   - ``University``: 大学信息
+6. **Database** (database.py)
 
-5. **工具模块** (utils/)
+   SQLite database containing:
 
-   - ``logger.py``: 结构化日志配置
-   - ``helpers.py``: 通用辅助函数
+   - ``professors`` table: Professor basic information, scores, homepage summary, chat messages
+   - ``papers`` table: Paper metadata
+   - ``applicant_profile`` table: User CV/PS, research preferences, arXiv papers
 
-数据流程
---------
+   Provides complete CRUD operations and data export functionality.
 
-1. **爬取阶段**
+7. **Data Models** (models.py)
+
+   Pydantic model definitions:
+
+   - ``Professor``: Professor information
+   - ``Paper``: Paper information
+   - ``University``: University information
+
+8. **Utility Module** (utils/)
+
+   - ``logger.py``: Structured logging configuration
+   - ``helpers.py``: General helper functions
+   - ``pdf_extract.py``: PDF text extraction and Profile building
+
+9. **API Infrastructure** (api_infra/)
+
+   - ``core/client.py``: Unified LLM client supporting multiple providers
+
+Data Flow
+---------
+
+1. **Crawl Phase**
 
    .. code-block::
 
-      User → main.py crawl
-         → CSRankingsCrawler.fetch()
-         → Selenium 打开浏览器
-         → 解析 HTML 提取教授列表
-         → Database.upsert_professor()
-         → SQLite 保存
+      User -> main.py crawl
+         -> CSRankingsCrawler.fetch()
+         -> Selenium opens browser
+         -> Parse HTML to extract professor list
+         -> Database.upsert_professor()
+         -> SQLite save
 
-2. **论文获取阶段**
+2. **Paper Fetch Phase**
 
    .. code-block::
 
-      User → main.py fetch-papers
-         → Database.list_professors()
-         → 对每位教授:
+      User -> main.py fetch-papers
+         -> Database.list_professors()
+         -> For each professor:
             ArxivCrawler.fetch(professor)
-            → arxiv.Search 查询
-            → 解析返回结果
-            → Database.upsert_paper()
-         → SQLite 保存
+            -> arxiv.Search query
+            -> Parse returned results
+            -> Database.upsert_paper()
+         -> SQLite save
 
-3. **Web 界面查询阶段**
-
-   .. code-block::
-
-      Browser → Flask app.py (GET /api/professors)
-         → Database.list_professors()
-         → JSON 返回教授列表
-         → JavaScript 渲染卡片 + 筛选
-
-      Browser → Flask app.py (POST /api/professor/<id>/priority)
-         → Database.update_professor_priority()
-         → 更新数据库并返回最新列表
-
-4. **命令行查询阶段**
+3. **Homepage Crawl Phase**
 
    .. code-block::
 
-      User → main.py stats / list
-         → Database.get_stats() / list_professors()
-         → 格式化输出
+      User -> HomepageCrawler
+         -> Selenium opens professor homepage
+         -> Extract page content
+         -> LLM generates summary
+         -> Database.update_homepage_summary()
 
-配置
-----
+4. **Scoring Phase**
 
-当前版本无需配置文件，所有参数通过命令行传递。
+   .. code-block::
 
-未来可能的配置项：
+      ScorerDaemon -> Database.list_unscored_professors()
+         -> For each professor:
+            Scorer.run()
+            -> LLM evaluates direction match & difficulty
+            -> Database.update_professor_scores()
 
-- 数据库路径
-- 爬虫延迟时间
-- 缓存设置
-- 日志级别
+5. **Web Interface Query Phase**
 
-扩展性
-------
+   .. code-block::
 
-添加新爬虫：
+      Browser -> Flask app.py (GET /api/professors)
+         -> Database.list_professors()
+         -> JSON returns professor list
+         -> JavaScript renders cards + filters
 
-1. 创建 ``crawlers/newsource.py``
-2. 继承 ``BaseCrawler``
-3. 实现 ``fetch()`` 方法
-4. 在 ``crawlers/__init__.py`` 中注册
-5. 在 main.py 中添加对应命令
+      Browser -> Flask app.py (POST /api/chat/<id>)
+         -> Analyzer.chat_with_professor()
+         -> LLM generates response
+         -> Database.update_professor_messages()
 
-示例：
+6. **Command Line Query Phase**
+
+   .. code-block::
+
+      User -> main.py stats / list
+         -> Database.get_stats() / list_professors()
+         -> Formatted output
+
+Configuration
+-------------
+
+LLM configuration is stored in ``hound_config.json``:
+
+.. code-block:: json
+
+   {
+       "api_key": "your-api-key",
+       "model": "deepseek-v3.2",
+       "provider": "yunwu",
+       "url": "https://yunwu.ai/v1",
+       "temperature": 0.6,
+       "max_tokens": 800,
+       "scoring_iterations": 3,
+       "nickname": "YourName"
+   }
+
+Extensibility
+-------------
+
+Adding new crawlers:
+
+1. Create ``crawlers/newsource.py``
+2. Inherit ``BaseCrawler``
+3. Implement ``fetch()`` method
+4. Register in ``crawlers/__init__.py``
+5. Add corresponding command in main.py
+
+Example:
 
 .. code-block:: python
 
@@ -164,18 +226,18 @@ PhD Hunter 采用简洁的模块化设计，核心包含爬虫、数据库、Web
 
    class DBLPCrawler(BaseCrawler):
        def fetch(self, query: str):
-           # 实现爬取逻辑
+           # Implement crawling logic
            pass
 
-开发流程
+Development Workflow
+--------------------
+
+1. Modify code
+2. Run validation: ``python main.py ...``
+3. Submit changes
+
+See Also
 --------
-
-1. 修改代码
-2. 运行验证: ``python main.py ...``
-3. 提交变更
-
-参见
-----
 
 - :doc:`crawlers`
 - :doc:`api`
