@@ -252,13 +252,14 @@ function applyFilters() {
 // ============ End Filter functionality ============
 function renderProfessors(profList) {
     const container = document.getElementById('professor-list');
+    const list = profList || professors;
 
-    if (profList.length === 0) {
+    if (!list || list.length === 0) {
         container.innerHTML = '<div class="loading">No professors</div>';
         return;
     }
 
-    container.innerHTML = profList.map(prof => `
+    container.innerHTML = list.map(prof => `
         <div class="professor-card" data-id="${prof.id}" onclick="switchToChat(${prof.id})">
             <div class="priority-strip priority-strip-${prof.priority === -1 ? 'neg1' : prof.priority}"></div>
             <div class="card-top">
