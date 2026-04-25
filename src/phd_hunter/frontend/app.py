@@ -1013,22 +1013,19 @@ def run_hunt_worker():
                                 log_message(f"  [Homepage] Error: {e}")
                                 paper_titles = []
 
-                    # --- Step 2: Fetch papers by title (or fall back to author search) ---
-                    if paper_titles:
-                        log_message(f"  [arXiv] Searching by {len(paper_titles)} titles...")
-                        papers = arxiv_crawler.fetch_by_titles(
-                            prof,
-                            titles=paper_titles,
-                            max_papers=max_papers,
-                        )
-                    else:
-                        log_message(f"  [arXiv] No titles found, falling back to author search")
-                        papers = arxiv_crawler.fetch(
-                            prof,
-                            max_papers=max_papers,
-                            download=False,
-                            pdf_dir=None,
-                        )
+                    # --- Step 2: Fetch papers by title ---
+                    if not paper_titles:
+                        log_message(f"  [arXiv] Skipped: no paper titles extracted from homepage")
+                        with hunt_lock:
+                            hunt_state['papers_completed'] = i
+                        continue
+
+                    log_message(f"  [arXiv] Searching by {len(paper_titles)} titles...")
+                    papers = arxiv_crawler.fetch_by_titles(
+                        prof,
+                        titles=paper_titles,
+                        max_papers=max_papers,
+                    )
 
                     if papers:
                         # Filter out already-existing papers and invalid arxiv_id
