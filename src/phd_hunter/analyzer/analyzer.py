@@ -5,7 +5,7 @@ import asyncio
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from phd_hunter.api_infra import ModelClient
+from api_infra import ModelClient
 from phd_hunter.database import Database
 from phd_hunter.utils.pdf_extract import get_applicant_profile
 from phd_hunter.analyzer.prompts import (

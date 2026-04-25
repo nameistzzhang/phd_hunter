@@ -11,7 +11,7 @@ import traceback
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from phd_hunter.api_infra import ModelClient, ContextManager
+from api_infra import ModelClient, ContextManager
 from phd_hunter.database import Database
 from phd_hunter.hound.prompts import (
     SCORER_SYSTEM_PROMPT,

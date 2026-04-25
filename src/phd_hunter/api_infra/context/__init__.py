@@ -1,5 +1,5 @@
 """Context management for conversations."""
 
-from .manager import ContextManager
+from api_infra.context.manager import ContextManager
 
 __all__ = ["ContextManager"]
