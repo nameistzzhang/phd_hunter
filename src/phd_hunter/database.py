@@ -132,13 +132,32 @@ class Database:
     def _migrate_tables(self) -> None:
         """Apply migrations to existing tables."""
         cursor = self.conn.cursor()
-        # Check if priority column exists in professors table
         cursor.execute("PRAGMA table_info(professors)")
         columns = [row["name"] for row in cursor.fetchall()]
+
+        # Migration: priority column
         if "priority" not in columns:
             cursor.execute("ALTER TABLE professors ADD COLUMN priority INTEGER DEFAULT -1")
             self.conn.commit()
             print("[Migration] Added 'priority' column to professors table")
+
+        # Migration: hound scoring fields
+        hound_fields = {
+            "direction_match_score": "INTEGER",
+            "admission_difficulty_score": "INTEGER",
+            "homepage_url": "TEXT",
+            "messages": "TEXT",  # JSON array of API messages
+            "analyzed_at": "TEXT",
+            "homepage_summary": "TEXT",
+            "homepage_fetched_at": "TEXT",
+            "homepage_fetch_status": "TEXT DEFAULT 'pending'",
+            "homepage_fetch_error": "TEXT",
+        }
+        for field, sql_type in hound_fields.items():
+            if field not in columns:
+                cursor.execute(f"ALTER TABLE professors ADD COLUMN {field} {sql_type}")
+                self.conn.commit()
+                print(f"[Migration] Added '{field}' column to professors table")
 
     def _migrate_papers_table_if_needed(self) -> None:
         """Check if papers table needs migration from old schema (UNIQUE on s2_paper_id)
@@ -712,6 +731,153 @@ class Database:
         self.conn.commit()
         return deleted
 
+    # --- Hound Scorer operations ---
+
+    def update_professor_scores(
+        self,
+        professor_id: int,
+        direction_match: int,
+        admission_difficulty: int,
+        reasoning: str = "",
+    ) -> None:
+        """Update hound scoring results for a professor.
+
+        Args:
+            professor_id: Professor database ID
+            direction_match: Direction match score (1-5)
+            admission_difficulty: Admission difficulty score (1-5)
+            reasoning: Optional reasoning text from LLM
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE professors
+            SET direction_match_score = ?,
+                admission_difficulty_score = ?,
+                analyzed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (direction_match, admission_difficulty, professor_id))
+        self.conn.commit()
+
+    def update_professor_homepage(
+        self,
+        professor_id: int,
+        summary: str,
+        email: Optional[str] = None,
+        status: str = "success",
+        error_msg: str = "",
+    ) -> None:
+        """Update homepage summary and related fields for a professor.
+
+        Args:
+            professor_id: Professor database ID
+            summary: LLM-generated homepage summary
+            email: Extracted email (if found, updates only if not empty)
+            status: fetch status - 'success', 'failed', or 'dead'
+            error_msg: Error message if failed
+        """
+        cursor = self.conn.cursor()
+        updates = [
+            "homepage_summary = ?",
+            "homepage_fetched_at = CURRENT_TIMESTAMP",
+            "homepage_fetch_status = ?",
+        ]
+        params = [summary, status]
+
+        if email and email.strip():
+            updates.append("email = ?")
+            params.append(email.strip())
+
+        if error_msg:
+            updates.append("homepage_fetch_error = ?")
+            params.append(error_msg)
+
+        params.append(professor_id)
+
+        cursor.execute(
+            f"UPDATE professors SET {', '.join(updates)} WHERE id = ?",
+            tuple(params),
+        )
+        self.conn.commit()
+
+    def get_professor_hound_data(self, professor_id: int) -> Optional[Dict[str, Any]]:
+        """Get professor data needed for hound scoring (with papers).
+
+        Returns:
+            Professor dict with 'papers' key containing paper records,
+            or None if not found.
+        """
+        prof = self.get_professor_with_papers(professor_id)
+        if not prof:
+            return None
+
+        # Parse research_interests
+        if isinstance(prof.get("research_interests"), str):
+            try:
+                prof["research_interests"] = json.loads(prof["research_interests"])
+            except Exception:
+                prof["research_interests"] = []
+
+        # Parse messages
+        if isinstance(prof.get("messages"), str):
+            try:
+                prof["messages"] = json.loads(prof["messages"])
+            except Exception:
+                prof["messages"] = []
+
+        return prof
+
+    def update_professor_messages(
+        self,
+        professor_id: int,
+        messages: List[Dict[str, str]],
+    ) -> None:
+        """Update conversation messages for a professor.
+
+        Args:
+            professor_id: Professor database ID
+            messages: List of API message dicts [{role, content}, ...]
+        """
+        cursor = self.conn.cursor()
+        messages_json = json.dumps(messages, ensure_ascii=False)
+        cursor.execute(
+            "UPDATE professors SET messages = ? WHERE id = ?",
+            (messages_json, professor_id),
+        )
+        self.conn.commit()
+
+    def list_professors_for_scoring(
+        self,
+        limit: Optional[int] = None,
+        unscored_only: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """List professors that need scoring.
+
+        Args:
+            limit: Max number of professors
+            unscored_only: If True, only return professors without scores
+
+        Returns:
+            List of professor records (minimal fields)
+        """
+        cursor = self.conn.cursor()
+        query = """
+            SELECT p.id, p.name, p.university_name, p.university_rank,
+                   p.research_interests, p.total_papers, p.recent_papers
+            FROM professors p
+            WHERE (SELECT COUNT(*) FROM papers WHERE professor_id = p.id) >= 3
+        """
+        if unscored_only:
+            query += " AND p.direction_match_score IS NULL"
+        query += " ORDER BY p.university_rank ASC, (SELECT COUNT(*) FROM papers WHERE professor_id = p.id) DESC"
+        if limit:
+            query += " LIMIT ?"
+            cursor.execute(query, (limit,))
+        else:
+            cursor.execute(query)
+        return [dict(row) for row in cursor.fetchall()]
+
+    # --- End Hound operations ---
+
     def get_stats(self) -> Dict[str, Any]:
         """Get database statistics."""
         cursor = self.conn.cursor()
@@ -738,6 +904,12 @@ class Database:
         cursor.execute("SELECT AVG(match_score) as avg_score FROM professors")
         avg_score = cursor.fetchone()["avg_score"] or 0
 
+        cursor.execute("SELECT AVG(direction_match_score) as avg_direction FROM professors WHERE direction_match_score IS NOT NULL")
+        avg_direction = cursor.fetchone()["avg_direction"] or 0
+
+        cursor.execute("SELECT AVG(admission_difficulty_score) as avg_difficulty FROM professors WHERE admission_difficulty_score IS NOT NULL")
+        avg_difficulty = cursor.fetchone()["avg_difficulty"] or 0
+
         # Count papers with local PDFs
         cursor.execute("SELECT COUNT(*) as count FROM papers WHERE local_pdf_path IS NOT NULL")
         pdf_count = cursor.fetchone()["count"]
@@ -750,6 +922,8 @@ class Database:
             "by_status": status_counts,
             "avg_papers": round(avg_papers, 1),
             "avg_match_score": round(avg_score, 1),
+            "avg_direction_match": round(avg_direction, 1),
+            "avg_admission_difficulty": round(avg_difficulty, 1),
         }
 
     def export_to_json(self, output_path: str):

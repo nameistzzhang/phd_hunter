@@ -24,7 +24,7 @@
                 </div>
 
                 <!-- Right side: Settings -->
-                <a href="#" class="nav-link settings-link">
+                <a href="#" class="nav-link settings-link" id="settings-link">
                     <img src="static/setting_icon.svg" alt="Settings" class="settings-icon">
                 </a>
             </div>
@@ -354,35 +354,29 @@
 
             <!-- Page: Chat (default) -->
             <div class="page-container active" id="page-chat">
-                <div class="chat-header">
-                    <h1>Professor Finder</h1>
-                    <p class="subtitle">Search and analyze CS professors</p>
-                </div>
-
-                <div class="chat-messages" id="chat-messages">
-                    <div class="message assistant">
-                        <div class="message-content">
-                            <p>Hello. I'm the PhD Hunter assistant.</p>
-                            <p>I can help you:</p>
-                            <ul>
-                                <li>Analyze professor research areas</li>
-                                <li>Assess application fit</li>
-                                <li>Provide application strategy</li>
-                            </ul>
-                            <p>Click any professor on the right to start.</p>
-                        </div>
+                <div class="chat-page">
+                    <!-- Dynamic Professor Header -->
+                    <div class="chat-prof-header" id="chat-prof-header">
+                        <div class="chat-prof-name" id="chat-prof-name">Select a Professor</div>
+                        <div class="chat-prof-uni" id="chat-prof-uni">Click a professor card on the right to start chatting</div>
                     </div>
-                </div>
 
-                <div class="chat-input-area">
-                    <div class="input-wrapper">
-                        <input type="text" id="user-input" placeholder="Type a question..." autocomplete="off">
-                        <button id="send-btn" type="button">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                        </button>
+                    <!-- Chat Messages Area (empty for now) -->
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Messages will appear here -->
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="chat-input-area">
+                        <div class="input-wrapper">
+                            <input type="text" id="user-input" placeholder="Type a question..." autocomplete="off">
+                            <button id="send-btn" type="button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -401,30 +395,42 @@
 
             <!-- Filter bar -->
             <div class="filter-bar">
-                <div class="filter-group">
-                    <label for="filter-priority">Priority</label>
-                    <select id="filter-priority" class="filter-select">
-                        <option value="all">All Priorities</option>
-                        <option value="0">Reach</option>
-                        <option value="1">Good Match</option>
-                        <option value="2">Safe</option>
-                        <option value="3">Backup</option>
-                        <option value="-1">Not Considered</option>
-                    </select>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filter-priority">Priority</label>
+                        <select id="filter-priority" class="filter-select">
+                            <option value="all">All Priorities</option>
+                            <option value="0">Reach</option>
+                            <option value="1">Good Match</option>
+                            <option value="2">Safe</option>
+                            <option value="3">Backup</option>
+                            <option value="-1">Not Considered</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-area">Research Area</label>
+                        <select id="filter-area" class="filter-select">
+                            <option value="all">All Areas</option>
+                            <!-- Areas populated by JS -->
+                        </select>
+                    </div>
                 </div>
-                <div class="filter-group">
-                    <label for="filter-area">Research Area</label>
-                    <select id="filter-area" class="filter-select">
-                        <option value="all">All Areas</option>
-                        <!-- Areas populated by JS -->
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="filter-university">University</label>
-                    <select id="filter-university" class="filter-select">
-                        <option value="all">All Universities</option>
-                        <!-- Universities populated by JS -->
-                    </select>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filter-university">University</label>
+                        <select id="filter-university" class="filter-select">
+                            <option value="all">All Universities</option>
+                            <!-- Universities populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-sort">Sort</label>
+                        <select id="filter-sort" class="filter-select">
+                            <option value="default">Default</option>
+                            <option value="match-desc">Match: High to Low</option>
+                            <option value="diff-asc">Difficulty: Easy to Hard</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -451,6 +457,67 @@
     <!-- Toast notification -->
     <div id="toast" class="toast hidden">
         <span id="toast-message"></span>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal-overlay">
+        <div class="modal settings-modal">
+            <div class="modal-header">
+                <h2>LLM Settings</h2>
+                <button class="modal-close" id="settings-modal-close">&times;</button>
+            </div>
+            <div class="modal-body settings-body">
+                <div class="settings-form">
+                    <div class="form-row settings-row">
+                        <div class="form-group full">
+                            <label for="setting-nickname">Nickname</label>
+                            <input type="text" id="setting-nickname" class="form-input" placeholder="Your display name...">
+                        </div>
+                    </div>
+                    <div class="form-row settings-row">
+                        <div class="form-group full">
+                            <label for="setting-api-key">API Key</label>
+                            <input type="password" id="setting-api-key" class="form-input" placeholder="Enter your API key..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-row settings-row">
+                        <div class="form-group half">
+                            <label for="setting-provider">Provider</label>
+                            <input type="text" id="setting-provider" class="form-input" placeholder="yunwu">
+                        </div>
+                        <div class="form-group half">
+                            <label for="setting-model">Model</label>
+                            <input type="text" id="setting-model" class="form-input" placeholder="deepseek-v3.2">
+                        </div>
+                    </div>
+                    <div class="form-row settings-row">
+                        <div class="form-group full">
+                            <label for="setting-url">Base URL</label>
+                            <input type="text" id="setting-url" class="form-input" placeholder="https://yunwu.ai/v1">
+                        </div>
+                    </div>
+                    <div class="form-row settings-row">
+                        <div class="form-group third">
+                            <label for="setting-temperature">Temperature</label>
+                            <input type="number" id="setting-temperature" class="form-input" min="0" max="2" step="0.1" value="0.6">
+                        </div>
+                        <div class="form-group third">
+                            <label for="setting-max-tokens">Max Tokens</label>
+                            <input type="number" id="setting-max-tokens" class="form-input" min="100" max="8000" step="100" value="800">
+                        </div>
+                        <div class="form-group third">
+                            <label for="setting-scoring-iterations">Scoring Iterations</label>
+                            <input type="number" id="setting-scoring-iterations" class="form-input" min="1" max="5" step="1" value="3">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-footer">
+                    <button id="save-settings-btn" class="hunt-button">
+                        <span class="button-text">Save Settings</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="static/app.js"></script>

@@ -2,6 +2,7 @@
 
 let professors = [];
 let selectedProfessor = null;
+let chatLoading = false;
 
 const ACTIVE_PAGE_KEY = 'phd_hunter_active_page';
 
@@ -128,7 +129,8 @@ async function loadStats() {
             <div class="stat"><span class="stat-value">${stats.universities}</span> Univ</div>
             <div class="stat"><span class="stat-value">${stats.professors}</span> Profs</div>
             <div class="stat"><span class="stat-value">${stats.papers}</span> Papers</div>
-            <div class="stat"><span class="stat-value">${stats.avg_match_score}</span> Avg Score</div>
+            <div class="stat"><span class="stat-value">${stats.avg_direction_match || '-'}</span> Avg Match</div>
+            <div class="stat"><span class="stat-value">${stats.avg_admission_difficulty || '-'}</span> Avg Diff</div>
         `;
     } catch (error) {
         console.error('Failed to load stats:', error);
@@ -192,6 +194,7 @@ function initFilters() {
     document.getElementById('filter-priority').addEventListener('change', applyFilters);
     document.getElementById('filter-area').addEventListener('change', applyFilters);
     document.getElementById('filter-university').addEventListener('change', applyFilters);
+    document.getElementById('filter-sort').addEventListener('change', applyFilters);
 }
 
 // Apply all active filters and render
@@ -226,6 +229,22 @@ function applyFilters() {
         return true;
     });
 
+    // Sort
+    const sortValue = document.getElementById('filter-sort').value;
+    if (sortValue === 'match-desc') {
+        filtered.sort((a, b) => {
+            const aScore = a.direction_match_score === null || a.direction_match_score === undefined ? -Infinity : a.direction_match_score;
+            const bScore = b.direction_match_score === null || b.direction_match_score === undefined ? -Infinity : b.direction_match_score;
+            return bScore - aScore;
+        });
+    } else if (sortValue === 'diff-asc') {
+        filtered.sort((a, b) => {
+            const aScore = a.admission_difficulty_score === null || a.admission_difficulty_score === undefined ? Infinity : a.admission_difficulty_score;
+            const bScore = b.admission_difficulty_score === null || b.admission_difficulty_score === undefined ? Infinity : b.admission_difficulty_score;
+            return aScore - bScore;
+        });
+    }
+
     console.log('Filtered count:', filtered.length);
     renderProfessors(filtered);
 }
@@ -240,11 +259,11 @@ function renderProfessors(profList) {
     }
 
     container.innerHTML = profList.map(prof => `
-        <div class="professor-card" data-id="${prof.id}" onclick="openProfessor(${prof.id})">
+        <div class="professor-card" data-id="${prof.id}" onclick="switchToChat(${prof.id})">
             <div class="priority-strip priority-strip-${prof.priority === -1 ? 'neg1' : prof.priority}"></div>
             <div class="card-top">
                 <div class="card-name-wrapper">
-                    <div class="card-name">${escapeHtml(prof.name)}</div>
+                    <div class="card-name" onclick="event.stopPropagation(); openProfessor(${prof.id})">${escapeHtml(prof.name)}</div>
                     <select class="priority-select" data-id="${prof.id}" data-priority="${prof.priority}" onclick="event.stopPropagation()">
                         <option value="-1" ${prof.priority === -1 ? 'selected' : ''}>Not Considered</option>
                         <option value="0" ${prof.priority === 0 ? 'selected' : ''}>Reach</option>
@@ -253,7 +272,16 @@ function renderProfessors(profList) {
                         <option value="3" ${prof.priority === 3 ? 'selected' : ''}>Backup</option>
                     </select>
                 </div>
-                <div class="card-score">${prof.match_score?.toFixed(1) || 0}<small>pts</small></div>
+                <div class="card-scores">
+                    <div class="score-pill match" title="Direction Match: how well your research aligns with this professor">
+                        <span class="score-pill-label">Match</span>
+                        <span class="score-pill-value">${prof.direction_match_score || '-'}</span>
+                    </div>
+                    <div class="score-pill diff" title="Admission Difficulty: how hard it is to get admitted to this professor">
+                        <span class="score-pill-label">Diff</span>
+                        <span class="score-pill-value">${prof.admission_difficulty_score || '-'}</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card-meta">
@@ -273,6 +301,113 @@ function renderProfessors(profList) {
     document.querySelectorAll('.priority-select').forEach(select => {
         select.addEventListener('change', updatePriority);
     });
+}
+
+// Simple markdown to HTML converter for chat messages
+function simpleMarkdownToHtml(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+    // Code blocks
+    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+    // Headers
+    html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    // Lists
+    html = html.replace(/^\s*[-*] (.*$)/gim, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+// Load chat messages for a professor
+async function loadChatMessages(profId) {
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = '';
+
+    try {
+        const response = await fetch(`/api/chat/${profId}`);
+        if (!response.ok) return;
+        const data = await response.json();
+
+        if (data.messages && data.messages.length > 0) {
+            // Render existing messages
+            for (let i = 0; i < data.messages.length; i++) {
+                const msg = data.messages[i];
+                addChatMessage(msg.content, msg.role === 'user' ? 'user' : 'assistant', null, false, i);
+            }
+        } else {
+            // No messages yet — trigger first-time analysis
+            container.innerHTML = '';
+            const loadingId = 'loading-init-' + profId;
+            addChatMessage('', 'assistant', loadingId, true);
+            // Update the loading text to be more descriptive
+            const loadingMsg = document.getElementById(loadingId);
+            if (loadingMsg) {
+                const textSpan = loadingMsg.querySelector('.analyzing-text');
+                if (textSpan) textSpan.textContent = 'Analyzing professor and generating cold email draft';
+            }
+            chatLoading = true;
+
+            try {
+                const postResp = await fetch(`/api/chat/${profId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const postData = await postResp.json();
+                container.innerHTML = '';
+                if (postData.success && postData.response) {
+                    addChatMessage(postData.response, 'assistant', null, false, 0);
+                } else {
+                    addChatMessage('Failed to generate analysis. Please try again.', 'assistant', null, false, 0);
+                }
+            } catch (err) {
+                container.innerHTML = '';
+                addChatMessage('Failed to generate analysis. Please try again.', 'assistant', null, false, 0);
+            } finally {
+                chatLoading = false;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load chat messages:', error);
+    }
+}
+
+// Switch to Chat page for a specific professor
+async function switchToChat(profId) {
+    const prof = professors.find(p => p.id === profId);
+    if (!prof) return;
+
+    // Switch to Chat page
+    document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('[data-page="chat"]').classList.add('active');
+    document.querySelectorAll('.page-container').forEach(page => page.classList.remove('active'));
+    document.getElementById('page-chat').classList.add('active');
+
+    // Update chat header
+    document.getElementById('chat-prof-name').textContent = prof.name;
+    document.getElementById('chat-prof-uni').textContent = prof.university_name;
+
+    // Highlight the professor card
+    document.querySelectorAll('.professor-card').forEach(card => card.classList.remove('active'));
+    document.querySelector(`[data-id="${profId}"]`)?.classList.add('active');
+
+    selectedProfessor = prof;
+
+    // Load messages (and trigger first analysis if empty)
+    await loadChatMessages(profId);
 }
 
 // Open professor detail modal
@@ -297,10 +432,6 @@ function openProfessor(profId) {
                     <div class="info-value">${prof.university_name} ${prof.university_rank ? `(#${prof.university_rank})` : ''}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Department</div>
-                    <div class="info-value">${prof.department || 'Not provided'}</div>
-                </div>
-                <div class="info-item">
                     <div class="info-label">Research Interests</div>
                     <div class="tags">
                         ${(prof.research_interests || []).map(interest =>
@@ -315,22 +446,35 @@ function openProfessor(profId) {
             <div class="section-title">Metrics</div>
             <div class="metrics-grid">
                 <div class="metric-box">
-                    <div class="metric-label">Match Score</div>
-                    <div class="metric-value">${prof.match_score?.toFixed(1) || 0}</div>
+                    <div class="metric-label">Direction Match</div>
+                    <div class="metric-value">${prof.direction_match_score || '-'}/5</div>
                 </div>
                 <div class="metric-box">
-                    <div class="metric-label">Research Alignment</div>
-                    <div class="metric-value">${prof.research_alignment?.toFixed(1) || 0}</div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-label">Activity</div>
-                    <div class="metric-value">${prof.activity_score?.toFixed(1) || 0}</div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-label">Papers / Year</div>
-                    <div class="metric-value">${(prof.papers_per_year || 0).toFixed(1)}</div>
+                    <div class="metric-label">Admission Difficulty</div>
+                    <div class="metric-value">${prof.admission_difficulty_score || '-'}/5</div>
                 </div>
             </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Homepage Content</div>
+            ${prof.homepage_summary ? `
+                <div class="homepage-summary">
+                    ${prof.homepage_summary.split('\n').map(line => {
+                        if (line.startsWith('Research Focus:')) {
+                            return `<div class="homepage-line"><span class="homepage-label">Research Focus</span><span class="homepage-text">${escapeHtml(line.replace('Research Focus:', '').trim())}</span></div>`;
+                        } else if (line.startsWith('Recruiting:')) {
+                            const status = line.replace('Recruiting:', '').trim();
+                            const statusClass = status === 'accepting' ? 'recruiting-yes' : status === 'not_accepting' ? 'recruiting-no' : 'recruiting-unknown';
+                            return `<div class="homepage-line"><span class="homepage-label">Recruiting</span><span class="homepage-badge ${statusClass}">${escapeHtml(status)}</span></div>`;
+                        } else if (line.startsWith('Summary:')) {
+                            return `<div class="homepage-line"><span class="homepage-label">Summary</span><span class="homepage-text">${escapeHtml(line.replace('Summary:', '').trim())}</span></div>`;
+                        } else {
+                            return `<div class="homepage-line"><span class="homepage-text">${escapeHtml(line)}</span></div>`;
+                        }
+                    }).join('')}
+                </div>
+            ` : prof.homepage_fetch_status === 'pending' ? '<p style="color: var(--text-muted); font-size: 13px;">Homepage analysis pending...</p>' : prof.homepage_fetch_status === 'failed' ? '<p style="color: var(--text-muted); font-size: 13px;">Homepage analysis failed</p>' : '<p style="color: var(--text-muted); font-size: 13px;">No homepage content available</p>'}
         </div>
 
         <div class="section">
@@ -338,11 +482,11 @@ function openProfessor(profId) {
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Homepage</div>
-                    <div class="info-value">${prof.homepage ? `<a href="${escapeHtml(prof.homepage)}" target="_blank" class="paper-link">Visit</a>` : 'Not provided'}</div>
+                    <div class="info-value">${prof.homepage ? `<a href="${escapeHtml(prof.homepage)}" target="_blank" class="paper-link">${escapeHtml(prof.homepage)}</a>` : 'Not provided'}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Email</div>
-                    <div class="info-value">${prof.email || 'Not provided'}</div>
+                    <div class="info-value">${prof.email ? `<a href="mailto:${escapeHtml(prof.email)}" class="paper-link">${escapeHtml(prof.email)}</a>` : 'Not provided'}</div>
                 </div>
             </div>
         </div>
@@ -352,7 +496,7 @@ function openProfessor(profId) {
             ${prof.papers && prof.papers.length > 0
                 ? prof.papers.map(paper => `
                     <div class="paper-item">
-                        <div class="paper-title">${escapeHtml(paper.title)}</div>
+                        <div class="paper-title">${paper.url ? `<a href="${escapeHtml(paper.url)}" target="_blank" class="paper-title-link">${escapeHtml(paper.title)}</a>` : escapeHtml(paper.title)}</div>
                         <div class="paper-meta">
                             <span>📅 ${paper.year || 'N/A'}</span>
                             ${paper.venue ? `<span>📍 ${escapeHtml(paper.venue)}</span>` : ''}
@@ -392,32 +536,134 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Send message
-function sendMessage() {
+async function sendMessage() {
     const input = document.getElementById('user-input');
     const message = input.value.trim();
 
     if (!message) return;
+    if (!selectedProfessor) {
+        showToast('Please select a professor from the list first.', 'error');
+        return;
+    }
+    if (chatLoading) return;
 
-    addChatMessage(message, 'user');
+    const container = document.getElementById('chat-messages');
+    const userIndex = container.children.length;
+    addChatMessage(message, 'user', null, false, userIndex);
     input.value = '';
+    chatLoading = true;
 
-    // Auto-reply
-    setTimeout(() => {
-        if (selectedProfessor) {
-            addChatMessage(`Analyzing <strong>${selectedProfessor.name}</strong>...<br><br>This professor at <strong>${selectedProfessor.university_name}</strong> works on ${(selectedProfessor.research_interests || []).slice(0, 3).join(', ')}. Completed ${selectedProfessor.total_papers || 0} papers.`, 'assistant');
+    // Show "Analyzing..." loading indicator
+    const loadingId = 'loading-' + Date.now();
+    addChatMessage('', 'assistant', loadingId, true);
+
+    try {
+        const response = await fetch(`/api/chat/${selectedProfessor.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        });
+        const data = await response.json();
+
+        // Remove loading indicator
+        const loadingMsg = document.getElementById(loadingId);
+        if (loadingMsg) loadingMsg.remove();
+
+        const assistantIndex = container.children.length;
+        if (data.success && data.response) {
+            addChatMessage(data.response, 'assistant', null, false, assistantIndex);
         } else {
-            addChatMessage('Please select a professor from the list first.', 'assistant');
+            addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant', null, false, assistantIndex);
         }
-    }, 300);
+    } catch (error) {
+        // Remove loading indicator
+        const loadingMsg = document.getElementById(loadingId);
+        if (loadingMsg) loadingMsg.remove();
+
+        const assistantIndex = container.children.length;
+        addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant', null, false, assistantIndex);
+        console.error('Chat API error:', error);
+    } finally {
+        chatLoading = false;
+    }
 }
 
-function addChatMessage(content, type) {
+function addChatMessage(content, type, msgId, isLoading, visibleIndex) {
     const container = document.getElementById('chat-messages');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${type}`;
-    msgDiv.innerHTML = `<div class="message-content">${content}</div>`;
+    if (msgId) msgDiv.id = msgId;
+
+    // Avatar
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'chat-avatar';
+    if (type === 'assistant') {
+        avatarDiv.innerHTML = `<img src="static/windsurf.svg" alt="AI" class="avatar-img">`;
+    } else {
+        const displayName = userNickname || 'Me';
+        avatarDiv.textContent = displayName.slice(0, 2);
+        avatarDiv.classList.add('user-avatar');
+    }
+
+    // Content wrapper
+    const wrapperDiv = document.createElement('div');
+    wrapperDiv.className = 'message-wrapper';
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+
+    if (isLoading) {
+        contentDiv.innerHTML = `<span class="analyzing-text">Analyzing</span><span class="analyzing-dots"></span>`;
+    } else if (type === 'assistant') {
+        contentDiv.innerHTML = simpleMarkdownToHtml(content);
+    } else {
+        contentDiv.textContent = content;
+    }
+
+    wrapperDiv.appendChild(contentDiv);
+
+    // Delete button (not for loading messages)
+    if (!isLoading && visibleIndex !== undefined) {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'message-delete-btn';
+        deleteBtn.innerHTML = '🗑';
+        deleteBtn.title = 'Delete message';
+        deleteBtn.onclick = async () => {
+            if (!confirm('Delete this message?')) return;
+            await deleteChatMessage(visibleIndex);
+        };
+        wrapperDiv.appendChild(deleteBtn);
+    }
+
+    msgDiv.appendChild(avatarDiv);
+    msgDiv.appendChild(wrapperDiv);
     container.appendChild(msgDiv);
     container.scrollTop = container.scrollHeight;
+}
+
+async function deleteChatMessage(visibleIndex) {
+    if (!selectedProfessor) return;
+    try {
+        const response = await fetch(`/api/chat/${selectedProfessor.id}/message`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index: visibleIndex })
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            alert(`Delete failed (${response.status}): ${text}`);
+            return;
+        }
+        const data = await response.json();
+        if (data.success) {
+            await loadChatMessages(selectedProfessor.id);
+        } else {
+            alert(data.error || 'Failed to delete message');
+        }
+    } catch (error) {
+        console.error('Delete message error:', error);
+        alert('Delete failed: ' + error.message);
+    }
 }
 
 // Utility functions
@@ -1221,6 +1467,97 @@ initProfilePage();
 loadProfile();
 
 // ============ End Profile Page ============
+
+// ============ Settings Modal ============
+
+function openSettingsModal() {
+    document.getElementById('settings-modal-overlay').classList.add('active');
+    loadSettings();
+}
+
+function closeSettingsModal() {
+    document.getElementById('settings-modal-overlay').classList.remove('active');
+}
+
+let userNickname = '';
+
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/hound-config');
+        if (!response.ok) return;
+        const config = await response.json();
+
+        document.getElementById('setting-nickname').value = config.nickname || '';
+        document.getElementById('setting-api-key').value = config.api_key || '';
+        document.getElementById('setting-provider').value = config.provider || 'yunwu';
+        document.getElementById('setting-model').value = config.model || 'deepseek-v3.2';
+        document.getElementById('setting-url').value = config.url || 'https://yunwu.ai/v1';
+        document.getElementById('setting-temperature').value = config.temperature ?? 0.6;
+        document.getElementById('setting-max-tokens').value = config.max_tokens ?? 800;
+        document.getElementById('setting-scoring-iterations').value = config.scoring_iterations ?? 3;
+        userNickname = config.nickname || '';
+    } catch (error) {
+        console.error('Failed to load settings:', error);
+    }
+}
+
+async function saveSettings() {
+    const config = {
+        nickname: document.getElementById('setting-nickname').value.trim(),
+        api_key: document.getElementById('setting-api-key').value.trim(),
+        provider: document.getElementById('setting-provider').value.trim(),
+        model: document.getElementById('setting-model').value.trim(),
+        url: document.getElementById('setting-url').value.trim(),
+        temperature: parseFloat(document.getElementById('setting-temperature').value),
+        max_tokens: parseInt(document.getElementById('setting-max-tokens').value),
+        scoring_iterations: parseInt(document.getElementById('setting-scoring-iterations').value),
+    };
+    userNickname = config.nickname;
+
+    if (!config.api_key) {
+        showToast('API Key is required', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/hound-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast('Settings saved successfully', 'success');
+            closeSettingsModal();
+        } else {
+            showToast(data.error || 'Save failed', 'error');
+        }
+    } catch (error) {
+        showToast('Save error: ' + error.message, 'error');
+    }
+}
+
+// Settings event bindings
+document.getElementById('settings-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSettingsModal();
+});
+
+document.getElementById('settings-modal-close')?.addEventListener('click', closeSettingsModal);
+
+document.getElementById('settings-modal-overlay')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('settings-modal-overlay')) closeSettingsModal();
+});
+
+document.getElementById('save-settings-btn')?.addEventListener('click', saveSettings);
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('settings-modal-overlay')?.classList.contains('active')) {
+        closeSettingsModal();
+    }
+});
+
+// ============ End Settings Modal ============
 
 // Restore last active page after all definitions are loaded
 restoreActivePage();

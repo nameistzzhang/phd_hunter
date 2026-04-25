@@ -236,7 +236,7 @@ html, body {
     flex-direction: column;
 }
 
-#page-chat .chat-header {
+#page-chat .chat-prof-header {
     flex-shrink: 0;
 }
 
@@ -249,6 +249,42 @@ html, body {
     flex-shrink: 0;
 }
 
+/* Chat Professor Header */
+.chat-prof-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.chat-prof-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    height: 3px;
+    background: #000;
+}
+
+.chat-prof-name {
+    font-family: 'Calibri', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.chat-prof-uni {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Legacy chat header (keep for compatibility) */
 .chat-header {
     padding: 20px 24px;
     border-bottom: 1px solid var(--border-color);
@@ -282,35 +318,72 @@ html, body {
 
 /* 消息样式 */
 .message {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     max-width: 90%;
 }
 
 .message.user {
     align-self: flex-end;
+    flex-direction: row-reverse;
 }
 
 .message.assistant {
     align-self: flex-start;
 }
 
+.chat-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #1a1a2e;
+    border: 1px solid var(--border-color);
+}
+
+.chat-avatar .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 3px;
+}
+
+.chat-avatar.user-avatar {
+    background: #ffffff;
+    color: #1a1a1a;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border: 1px solid var(--border-color);
+}
+
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .message-content {
-    padding: 14px 18px;
-    border-radius: 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
     font-size: 14px;
     line-height: 1.7;
+    border: 1px solid var(--border-color);
 }
 
 .message.user .message-content {
     background: var(--accent-bg);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
 }
 
 .message.assistant .message-content {
-    background: transparent;
+    background: var(--bg-white);
     color: var(--text-secondary);
-    border: none;
-    padding-left: 0;
 }
 
 .message-content p {
@@ -329,6 +402,48 @@ html, body {
 .message-content li {
     margin: 4px 0;
     color: var(--text-secondary);
+}
+
+/* Message delete button */
+.message-delete-btn {
+    align-self: flex-end;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 2px 4px;
+    margin-top: 2px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    color: var(--text-muted);
+}
+
+.message-delete-btn:hover {
+    opacity: 1;
+    color: #e74c3c;
+}
+
+.message-wrapper:hover .message-delete-btn {
+    opacity: 0.6;
+}
+
+/* Analyzing animation */
+.analyzing-text {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.analyzing-dots::after {
+    content: '';
+    animation: analyzingDots 1.2s steps(4, end) infinite;
+}
+
+@keyframes analyzingDots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+    100% { content: ''; }
 }
 
 /* 输入区域 */
@@ -441,18 +556,24 @@ html, body {
 /* Filter bar */
 .filter-bar {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 6px;
     padding: 10px 16px;
     background: var(--bg-tertiary);
     border-bottom: 1px solid var(--border-color);
-    flex-wrap: nowrap;
+}
+
+.filter-row {
+    display: flex;
+    gap: 10px;
 }
 
 .filter-group {
     display: flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .filter-group label {
@@ -487,20 +608,11 @@ html, body {
     border-color: var(--text-primary);
 }
 
-/* Individual filter widths */
-#filter-priority {
-    width: 100px;
-    flex-shrink: 0;
-}
-
-#filter-area {
-    width: 100px;
-    flex-shrink: 0;
-}
-
-#filter-university {
+/* Filter selects fill their group */
+.filter-group .filter-select {
     flex: 1;
-    min-width: 200px;
+    min-width: 0;
+    width: 100%;
 }
 
 /* 教授列表 */
@@ -584,6 +696,13 @@ html, body {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    cursor: pointer;
+    transition: text-decoration 0.15s;
+}
+
+.card-name:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .priority-select {
@@ -694,17 +813,52 @@ html, body {
     background: #e3f2fd;
 }
 
-.card-score {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
+.card-scores {
+    display: flex;
+    gap: 6px;
+    align-items: center;
 }
 
-.card-score small {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 400;
+.score-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    min-width: 36px;
+    gap: 1px;
+}
+
+.score-pill-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.score-pill-value {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.score-pill.match {
+    background: rgba(76, 175, 80, 0.12);
+    border: 1px solid rgba(76, 175, 80, 0.25);
+}
+.score-pill.match .score-pill-label,
+.score-pill.match .score-pill-value {
+    color: #2e7d32;
+}
+
+.score-pill.diff {
+    background: rgba(239, 83, 80, 0.10);
+    border: 1px solid rgba(239, 83, 80, 0.22);
+}
+.score-pill.diff .score-pill-label,
+.score-pill.diff .score-pill-value {
+    color: #b71c1c;
 }
 
 .card-meta {
@@ -943,6 +1097,65 @@ html, body {
     letter-spacing: -0.02em;
 }
 
+/* Homepage summary */
+.homepage-summary {
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 14px;
+}
+
+.homepage-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.homepage-line:last-child {
+    margin-bottom: 0;
+}
+
+.homepage-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 90px;
+    flex-shrink: 0;
+    font-weight: 600;
+    margin-top: 1px;
+}
+
+.homepage-text {
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.homepage-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+.recruiting-yes {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+}
+
+.recruiting-no {
+    background: rgba(244, 67, 54, 0.15);
+    color: #F44336;
+}
+
+.recruiting-unknown {
+    background: rgba(158, 158, 158, 0.15);
+    color: #9E9E9E;
+}
+
 /* 论文列表 */
 .paper-item {
     background: var(--bg-tertiary);
@@ -963,6 +1176,18 @@ html, body {
     color: var(--text-primary);
     margin-bottom: 8px;
     line-height: 1.5;
+}
+
+.paper-title-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--text-muted);
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.paper-title-link:hover {
+    color: #2196F3;
+    border-bottom-color: #2196F3;
 }
 
 .paper-meta {
@@ -1069,6 +1294,19 @@ html, body {
     font-weight: 600;
     margin-bottom: 8px;
     color: var(--text-secondary);
+}
+
+/* ============================================
+   Chat Page Styles
+   ============================================ */
+
+.chat-page {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    overflow: hidden;
 }
 
 /* ============================================
@@ -2073,4 +2311,93 @@ html, body {
 
 .toast.toast-info {
     background: #1565c0;
+}
+
+/* ========== Settings Modal ========== */
+
+.settings-modal {
+    max-width: 520px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-body {
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.settings-row .form-group {
+    flex: 1;
+    min-width: 140px;
+}
+
+.settings-row .form-group.full {
+    flex: 1 1 100%;
+    min-width: 100%;
+}
+
+.settings-row .form-group.half {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 160px;
+}
+
+.settings-row .form-group.third {
+    flex: 1 1 calc(33.333% - 11px);
+    min-width: 120px;
+}
+
+.settings-row label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.settings-row .form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--bg-white);
+    color: var(--text-primary);
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+
+.settings-row .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.settings-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.settings-footer .hunt-button {
+    min-width: 140px;
 }

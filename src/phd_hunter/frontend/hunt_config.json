@@ -1,14 +1,17 @@
 {
   "areas": [
-    "ml"
+    "ml",
+    "ai",
+    "nlp",
+    "vision"
   ],
   "regions": [
-    "jp"
+    "sg"
   ],
   "start_year": 2024,
   "end_year": 2026,
-  "max_universities": 3,
-  "max_professors": 2,
-  "max_papers": 5,
-  "stop_requested": true
+  "max_universities": 2,
+  "max_professors": 15,
+  "max_papers": 10,
+  "stop_requested": false
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Simple API server to serve professor data as JSON for frontend."""
 
+import asyncio
 import json
 import os
 import sqlite3
@@ -20,6 +21,8 @@ from phd_hunter.crawlers import CSRankingsCrawler, ArxivCrawler
 from phd_hunter.database import Database
 from phd_hunter.utils.logger import get_logger, setup_logger
 from phd_hunter.models import Professor, University
+from phd_hunter.hound.scorer_daemon import get_daemon, start_daemon, stop_daemon
+from phd_hunter.analyzer import analyze_professor_first_time, chat_with_professor
 
 import arxiv as arxiv_lib
 
@@ -29,6 +32,7 @@ app = Flask(__name__,
 
 DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter.db")
 HUNT_CONFIG_PATH = str(Path(__file__).parent / "hunt_config.json")
+HOUND_CONFIG_PATH = str(Path(__file__).parent / "hound_config.json")
 UPLOADS_DIR = Path(__file__).parent.parent.parent.parent / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
@@ -393,6 +397,265 @@ def resolve_arxiv():
 
 
 # ========== End Profile API ==========
+
+
+# ========== Hound Scorer Daemon API ==========
+
+@app.route('/api/hound/status', methods=['GET'])
+def hound_status():
+    """Get scorer daemon status."""
+    daemon = get_daemon(db_path=DB_PATH)
+    return jsonify(daemon.get_status())
+
+
+@app.route('/api/hound/start', methods=['POST'])
+def hound_start():
+    """Manually start the scorer daemon."""
+    daemon = get_daemon(db_path=DB_PATH)
+    daemon.start()
+    return jsonify({'success': True, 'status': daemon.get_status()})
+
+
+@app.route('/api/hound/stop', methods=['POST'])
+def hound_stop():
+    """Manually stop the scorer daemon."""
+    daemon = get_daemon(db_path=DB_PATH)
+    daemon.stop()
+    return jsonify({'success': True, 'status': daemon.get_status()})
+
+
+# ========== End Hound API ==========
+
+
+# ========== Chat API ==========
+
+def _run_async(coro):
+    """Safely run an async coroutine in Flask's threaded environment.
+
+    asyncio.run() can fail when Werkzeug reuses threads with stale event loops.
+    We always create a fresh loop and clean it up afterward.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+        asyncio.set_event_loop(None)
+
+
+@app.route('/api/chat/<int:prof_id>', methods=['GET'])
+def get_chat_messages(prof_id):
+    """Get existing chat messages for a professor."""
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    db.close()
+
+    if not prof:
+        return jsonify({'error': 'Professor not found'}), 404
+
+    messages = prof.get('messages', [])
+    if not messages or not isinstance(messages, list):
+        messages = []
+
+    # Hide system prompt and hidden/initial analysis prompts
+    # (initial user prompt contains '=== APPLICANT PROFILE ===')
+    visible_messages = []
+    for m in messages:
+        if m.get('role') == 'system':
+            continue
+        if m.get('hidden'):
+            continue
+        if m.get('role') == 'user' and '=== APPLICANT PROFILE ===' in m.get('content', ''):
+            continue
+        visible_messages.append(m)
+
+    return jsonify({
+        'messages': visible_messages,
+        'professor_name': prof.get('name', ''),
+        'university_name': prof.get('university_name', ''),
+    })
+
+
+@app.route('/api/chat/<int:prof_id>', methods=['POST'])
+def post_chat_message(prof_id):
+    """Handle chat actions for a professor.
+
+    If request body has 'message' field: send user message and get assistant reply.
+    If request body is empty or has no 'message': trigger first-time analysis.
+    """
+    data = request.get_json(silent=True) or {}
+    user_message = data.get('message', '').strip()
+
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    if not prof:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+    db.close()
+
+    if user_message:
+        # --- Continue existing chat ---
+        try:
+            response = _run_async(chat_with_professor(
+                professor_id=prof_id,
+                user_message=user_message,
+                db_path=DB_PATH,
+            ))
+            if response is None:
+                return jsonify({'error': 'Chat failed. Make sure first-time analysis has been run.'}), 500
+            return jsonify({
+                'success': True,
+                'response': response,
+                'message': user_message,
+            })
+        except Exception as e:
+            return jsonify({'error': f'Chat failed: {str(e)}'}), 500
+    else:
+        # --- First-time analysis ---
+        try:
+            response = _run_async(analyze_professor_first_time(
+                professor_id=prof_id,
+                db_path=DB_PATH,
+            ))
+            if response is None:
+                return jsonify({'error': 'Analysis failed. Please check profile and try again.'}), 500
+            return jsonify({
+                'success': True,
+                'response': response,
+            })
+        except Exception as e:
+            return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
+
+@app.route('/api/chat/<int:prof_id>/message', methods=['DELETE'])
+def delete_chat_message(prof_id):
+    """Delete a single visible message by its visible index."""
+    data = request.get_json(silent=True) or {}
+    visible_index = data.get('index')
+
+    if visible_index is None:
+        return jsonify({'error': 'Missing index'}), 400
+
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    if not prof:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+
+    messages = prof.get('messages', [])
+    if not messages or not isinstance(messages, list):
+        db.close()
+        return jsonify({'error': 'No messages'}), 400
+
+    # Filter visible messages (same logic as GET)
+    visible_messages = []
+    for m in messages:
+        if m.get('role') == 'system':
+            continue
+        if m.get('hidden'):
+            continue
+        if m.get('role') == 'user' and '=== APPLICANT PROFILE ===' in m.get('content', ''):
+            continue
+        visible_messages.append(m)
+
+    if visible_index < 0 or visible_index >= len(visible_messages):
+        db.close()
+        return jsonify({'error': 'Invalid index'}), 400
+
+    target = visible_messages[visible_index]
+
+    # Remove from original messages by matching role + content
+    for i, m in enumerate(messages):
+        if m.get('role') == target.get('role') and m.get('content') == target.get('content'):
+            messages.pop(i)
+            break
+
+    db.update_professor_messages(prof_id, messages)
+    db.close()
+
+    return jsonify({'success': True})
+
+
+# ========== End Chat API ==========
+
+
+# ========== Hound Config API ==========
+
+# Default hound config values
+DEFAULT_HOUND_CONFIG = {
+    "api_key": "",
+    "model": "deepseek-v3.2",
+    "provider": "yunwu",
+    "url": "https://yunwu.ai/v1",
+    "temperature": 0.6,
+    "max_tokens": 800,
+    "scoring_iterations": 3,
+    "nickname": "",
+}
+
+
+def _load_hound_config():
+    """Load hound config from JSON file, creating defaults if missing."""
+    try:
+        if Path(HOUND_CONFIG_PATH).exists():
+            with open(HOUND_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                return {**DEFAULT_HOUND_CONFIG, **json.load(f)}
+    except Exception as e:
+        _hunt_logger.warning(f"Failed to load hound config: {e}, using defaults")
+    return DEFAULT_HOUND_CONFIG.copy()
+
+
+def _save_hound_config(config):
+    """Save hound config to JSON file."""
+    try:
+        with open(HOUND_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        _hunt_logger.error(f"Failed to save hound config: {e}")
+
+
+@app.route('/api/hound-config', methods=['GET'])
+def get_hound_config_api():
+    """Get current hound configuration (LLM settings)."""
+    config = _load_hound_config()
+    # Mask API key for safety
+    display_config = config.copy()
+    if display_config.get('api_key'):
+        key = display_config['api_key']
+        display_config['api_key'] = key[:4] + '*' * (len(key) - 8) + key[-4:]
+    return jsonify(display_config)
+
+
+@app.route('/api/hound-config', methods=['POST'])
+def update_hound_config_api():
+    """Update hound configuration (LLM settings)."""
+    data = request.get_json() or {}
+    config = _load_hound_config()
+
+    # Update allowed fields
+    if 'api_key' in data:
+        config['api_key'] = data['api_key']
+    if 'model' in data:
+        config['model'] = data['model']
+    if 'provider' in data:
+        config['provider'] = data['provider']
+    if 'url' in data:
+        config['url'] = data['url']
+    if 'temperature' in data:
+        config['temperature'] = float(data['temperature'])
+    if 'max_tokens' in data:
+        config['max_tokens'] = int(data['max_tokens'])
+    if 'scoring_iterations' in data:
+        config['scoring_iterations'] = int(data['scoring_iterations'])
+    if 'nickname' in data:
+        config['nickname'] = data['nickname']
+
+    _save_hound_config(config)
+    return jsonify({'success': True})
+
+
+# ========== End Hound Config API ==========
 
 
 @app.route('/api/stop-hunt', methods=['POST'])
@@ -781,8 +1044,24 @@ def run_hunt_worker():
                 log_message(f"\n[ERROR] {traceback.format_exc()}")
 
 
+# Auto-start scorer daemon when app module is loaded (with delay to avoid reloader dup)
+def _delayed_start_daemon():
+    try:
+        start_daemon(db_path=DB_PATH)
+    except Exception as e:
+        _hunt_logger.warning(f"Failed to auto-start scorer daemon: {e}")
+
+# Only auto-start if not inside Werkzeug reloader child process
+if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    threading.Timer(2.0, _delayed_start_daemon).start()
+
+
 if __name__ == '__main__':
     print("Starting PhD Hunter Frontend Server...")
     print(f"Database: {DB_PATH}")
     print("Open browser to: http://localhost:8080")
+
+    # Start scorer daemon in background
+    start_daemon(db_path=DB_PATH)
+
     app.run(debug=True, port=8082, use_reloader=False)  # Disable reloader to share global state

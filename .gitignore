@@ -40,6 +40,7 @@ reports/
 logs/
 *.log
 config/settings.yaml
+src/phd_hunter/frontend/hound_config.json
 
 # Database files
 *.db
@@ -51,6 +52,9 @@ src/phd_hunter/frontend/static/data/
 
 # Uploaded files
 uploads/
+
+# Raw homepage HTML archives
+home_pages/
 
 # Temporary files
 *.tmp

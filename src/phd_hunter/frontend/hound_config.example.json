@@ -1,0 +1,8 @@
+{
+  "api_key": "your-yunwu-api-key-here",
+  "model": "deepseek-v3.2",
+  "provider": "yunwu",
+  "temperature": 0.6,
+  "max_tokens": 800,
+  "scoring_iterations": 3
+}
