@@ -1,297 +1,318 @@
 # PhD Hunter 🎓
 
-**PhD 导师套磁筛选助手** - 自动化收集 CS 教授信息，智能分析匹配度，辅助生成套磁信
+**PhD Advisor Application Assistant** - Automate CS professor information collection, intelligent matching analysis, and cold email generation
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![Status](https://img.shields.io/badge/status-v0.1-green.svg)
 
-## ✨ 功能概览
+> 📖 **Full documentation**: https://nameistzzhang.github.io/phd_hunter/
 
-### 数据采集
-- 📊 **CSRankings 爬取** - 自动获取各大学 CS 领域教授排名和名单
-- 📝 **arXiv 论文获取** - 按作者搜索并保存最新论文元数据
-- 🏠 **个人主页抓取** - 抓取教授主页内容并 AI 摘要分析
-- 💾 **SQLite 存储** - 所有数据本地持久化
+## ✨ Features
 
-### AI 分析
-- 🤖 **教授匹配度打分** - 基于 LLM 对教授方向匹配度和录取难度评分（1-5分）
-- 💬 **智能对话分析** - 一键生成教授分析报告 + 套磁信草稿
-- 🎯 **个性化套磁信** - 基于你的 Profile（CV/PS/论文）生成定制化 cold email
+### Data Collection
+- 📊 **CSRankings Crawler** - Automatically fetch CS professor rankings and lists
+- 📝 **arXiv Paper Fetching** - Search and save latest paper metadata by author
+- 🏠 **Homepage Scraping** - Scrape professor homepages and generate AI summaries
+- 💾 **SQLite Storage** - All data persisted locally
 
-### Web 前端
-- 🌐 **现代化界面** - 基于 Flask 的 SPA 交互式界面
-- 🏷️ **优先级管理** - 冲刺/匹配/稳妥/保底/不考虑 五级标记
-- 🔍 **多维筛选** - 按优先级、研究领域、大学、分数筛选
-- 👤 **Profile 管理** - 上传 CV/PS、管理 arXiv 论文、设置研究偏好
-- ⚙️ **LLM 配置** - 可配置 API Key、模型、温度、迭代次数等参数
+### AI Analysis
+- 🤖 **Professor Matching Scoring** - LLM-based direction match (1-5) and admission difficulty (1-5)
+- 💬 **Intelligent Chat Analysis** - One-click professor analysis report + cold email draft
+- 🎯 **Personalized Cold Emails** - Customized emails based on your Profile (CV/PS/papers)
 
-## 🚀 快速开始
+### Web Frontend
+- 🌐 **Modern SPA Interface** - Flask-based interactive single-page application
+- 🏷️ **Priority Management** - Reach / Match / Target / Safety / Not Considered
+- 🔍 **Multi-dimensional Filtering** - By priority, research area, university, score
+- 👤 **Profile Management** - Upload CV/PS, manage arXiv papers, set research preferences
+- ⚙️ **LLM Configuration** - Configure API Key, model, temperature, iterations
 
-### 环境要求
+## 🚀 Quick Start
+
+### Requirements
 
 - Python 3.10+
-- [uv](https://github.com/astral-sh/uv) (推荐) 或 pip
-- Chrome/Chromium 浏览器（用于 Selenium 爬取主页）
+- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- Chrome/Chromium browser (for Selenium homepage scraping)
 
-### 安装
+### Installation
 
 ```bash
-# 1. 克隆项目
+# 1. Clone the repository
 git clone <repository-url>
 cd phd-hunter
 
-# 2. 安装依赖
+# 2. Install dependencies
 uv sync
 
-# 或使用 pip
+# Or using pip
 pip install -e .
 ```
 
-### 配置
+### ⚠️ Required Configuration
+
+**You must create the config files before running the application.**
 
 ```bash
-# 1. 配置 LLM 参数
+# 1. Configure LLM parameters (REQUIRED for AI features)
 cp src/phd_hunter/frontend/hound_config.example.json src/phd_hunter/frontend/hound_config.json
-# 编辑 hound_config.json 填入你的 API Key 和模型信息
+# Edit hound_config.json and fill in your API key and model settings
 
-# 2. 配置采集参数（可选）
+# 2. Configure crawl parameters (optional)
 cp src/phd_hunter/frontend/hunt_config.example.json src/phd_hunter/frontend/hunt_config.json
 ```
 
-### 数据采集（CLI 模式）
+**`hound_config.json` example:**
+```json
+{
+  "api_key": "your-api-key-here",
+  "model": "deepseek-v3.2",
+  "provider": "yunwu",
+  "url": "https://yunwu.ai/v1",
+  "temperature": 0.6,
+  "max_tokens": 800,
+  "scoring_iterations": 3,
+  "nickname": "YourName"
+}
+```
+
+> **Note**: Without `hound_config.json`, the Analyzer (chat), Scorer (matching score), and Homepage Crawler will not work. You can still browse professor data and manage priorities without it.
+
+### Data Collection (CLI Mode)
 
 ```bash
-# 1. 爬取教授数据
+# 1. Crawl professor data
 python main.py crawl --area ai --region world --max-professors 5
 
-# 2. 获取论文
+# 2. Fetch papers
 python main.py fetch-papers --max-papers 10
 
-# 3. 抓取教授主页（需要配置 LLM）
+# 3. Scrape professor homepages (requires LLM config)
 python -m phd_hunter.crawlers.homepage_crawler
 
-# 4. 运行匹配度打分（需要配置 LLM）
+# 4. Run matching score (requires LLM config)
 python -m phd_hunter.hound.scorer
 
-# 5. 查看统计
+# 5. View statistics
 python main.py stats
 ```
 
-### 启动 Web 界面
+### Start Web Interface
 
 ```bash
-# 启动 Flask Web 服务器（默认 http://localhost:8080）
+# Start Flask Web Server (default http://localhost:8080)
 PYTHONPATH=src python -m phd_hunter.frontend.app
 ```
 
-然后在浏览器中打开 http://localhost:8080，即可：
+Then open http://localhost:8080 in your browser:
 
-- **Hunt 页面**：浏览教授卡片，筛选、排序、标记优先级
-- **Chat 页面**：点击教授进入对话，AI 自动生成分析报告和套磁信草稿
-- **Profile 页面**：上传 CV/PS、添加 arXiv 论文、设置研究偏好
+- **Hunt page**: Browse professor cards, filter, sort, mark priorities
+- **Chat page**: Click a professor to start AI conversation with auto-generated analysis and cold email draft
+- **Profile page**: Upload CV/PS, add arXiv papers, set research preferences
 
-## 📁 项目结构
+## 📁 Project Structure
 
 ```
 phd_hunter/
-├── main.py                       # CLI 入口
-├── pyproject.toml                # 项目配置
-├── README.md                     # 项目说明
-├── docs/                         # Sphinx 文档
-├── tests/                        # 测试文件
+├── main.py                       # CLI entry
+├── pyproject.toml                # Project config
+├── README.md                     # This file
+├── docs/                         # Sphinx documentation
+├── tests/                        # Test files
 └── src/phd_hunter/
-    ├── __init__.py               # 包初始化
-    ├── models.py                 # Pydantic 数据模型
-    ├── database.py               # SQLite 数据库操作
-    ├── api_infra/                # LLM API 基础设施
+    ├── __init__.py               # Package init
+    ├── models.py                 # Pydantic data models
+    ├── database.py               # SQLite database operations
+    ├── api_infra/                # LLM API infrastructure
     │   ├── __init__.py
     │   └── core/
-    │       └── client.py         # 统一 LLM 客户端
+    │       └── client.py         # Unified LLM client
     ├── crawlers/
-    │   ├── __init__.py           # 导出 ArxivCrawler, CSRankingsCrawler
-    │   ├── base.py               # 爬虫基类 (缓存支持)
-    │   ├── csrankings.py         # CSRankings 爬虫 (Selenium)
-    │   ├── arxiv_crawler.py      # arXiv 爬虫
-    │   └── homepage_crawler.py   # 教授主页抓取 + AI 摘要
+    │   ├── __init__.py           # Export ArxivCrawler, CSRankingsCrawler
+    │   ├── base.py               # Crawler base class (with caching)
+    │   ├── csrankings.py         # CSRankings crawler (Selenium)
+    │   ├── arxiv_crawler.py      # arXiv crawler
+    │   └── homepage_crawler.py   # Homepage scraper + AI summary
     ├── hound/
     │   ├── __init__.py
-    │   └── scorer.py             # 教授匹配度打分器
+    │   └── scorer.py             # Professor matching scorer
     ├── analyzer/
-    │   ├── __init__.py           # 导出 analyze_professor, chat_with_professor
-    │   ├── analyzer.py           # 教授分析 + 套磁信生成核心
-    │   └── prompts.py            # Analyzer prompt 模板
+    │   ├── __init__.py           # Export analyze_professor, chat_with_professor
+    │   ├── analyzer.py           # Professor analysis + cold email core
+    │   └── prompts.py            # Analyzer prompt templates
     ├── utils/
-    │   ├── logger.py             # 日志配置
-    │   ├── helpers.py            # 工具函数
-    │   └── pdf_extract.py        # PDF 文本提取 + Profile 构建
-    └── frontend/                 # Web 前端界面
-        ├── app.py                # Flask API 服务器
-        ├── index.html            # 主页面
-        ├── hound_config.json     # LLM 配置（需手动创建）
-        ├── hunt_config.json      # 采集配置
+    │   ├── logger.py             # Logging config
+    │   ├── helpers.py            # Utility functions
+    │   └── pdf_extract.py        # PDF text extraction + Profile builder
+    └── frontend/                 # Web frontend
+        ├── app.py                # Flask API server
+        ├── index.html            # Main page
+        ├── hound_config.json     # LLM config (create from example!)
+        ├── hunt_config.json      # Crawl config (create from example!)
         ├── static/
-        │   ├── styles.css        # 样式表
-        │   ├── app.js            # 前端逻辑
-        │   └── windsurf.svg      # AI 头像图标
-        └── templates/            # HTML 模板
+        │   ├── styles.css        # Stylesheet
+        │   ├── app.js            # Frontend logic
+        │   └── windsurf.svg      # AI avatar icon
+        └── templates/            # HTML templates
 ```
 
-## 🗄️ 数据库结构
+## 🗄️ Database Schema
 
-项目使用 SQLite 存储数据，核心表：
+SQLite database with core tables:
 
-### professors 表
-- 基本信息：姓名、大学、排名、院系、邮箱、主页
-- 研究方向、优先级（-1~3）
-- AI 分析：homepage_summary, direction_match_score, admission_difficulty_score
-- 对话历史：messages (JSON)
+### professors table
+- Basic info: name, university, rank, department, email, homepage
+- Research interests, priority (-1~3)
+- AI analysis: homepage_summary, direction_match_score, admission_difficulty_score
+- Chat history: messages (JSON)
 
-### papers 表
-- 论文元数据（标题、作者、摘要、年份、venue）
-- arXiv ID、PDF 链接、引用数
-- 关联到教授记录
+### papers table
+- Paper metadata (title, authors, abstract, year, venue)
+- arXiv ID, PDF link, citation count
+- Linked to professor record
 
-### applicant_profile 表
-- 用户 Profile：CV 文本、PS 文本
-- 研究偏好、arXiv 论文列表
+### applicant_profile table
+- User Profile: CV text, PS text
+- Research preferences, arXiv paper list
 
-## 🔧 核心模块
+## 🔧 Core Modules
 
-### Analyzer - 教授分析与套磁信
+### Analyzer - Professor Analysis & Cold Email
 
-基于你的 Profile 和教授信息，自动生成：
-1. 教授研究方向分析
-2. 你与教授的匹配点分析
-3. 套磁信撰写指南
-4. 完整的套磁信草稿
+Based on your Profile and professor data, auto-generates:
+1. Professor research direction analysis
+2. Matching points between you and the professor
+3. Cold email writing guidelines
+4. Complete cold email draft
 
-支持多轮对话，可以基于初稿继续追问修改。
+Supports multi-round conversation to refine the draft.
 
-### Scorer - 匹配度打分
+### Scorer - Matching Score
 
-使用 LLM 对每位教授评分：
-- **Direction Match** (1-5): 研究方向匹配度
-- **Admission Difficulty** (1-5): 录取难度评估
+Uses LLM to score each professor:
+- **Direction Match** (1-5): Research direction matching degree
+- **Admission Difficulty** (1-5): Admission difficulty assessment
 
-### Homepage Crawler - 主页抓取
+### Homepage Crawler - Homepage Scraping
 
-使用 Selenium 抓取教授个人主页，通过 LLM 摘要提取：
-- 研究重点
-- 招生状态
-- 主页内容摘要
+Uses Selenium to scrape professor homepages, then LLM extracts:
+- Research focus
+- Recruiting status
+- Homepage content summary
 
-## 🌐 Web 界面使用指南
+## 🌐 Web Interface Guide
 
-### 1. 配置 LLM
+### 1. Configure LLM
 
-点击右上角 ⚙️ 设置图标，配置：
+Click the ⚙️ settings icon in the top-right corner to configure:
 - API Key
 - Provider / Model
-- URL（自定义 API 地址）
+- URL (custom API endpoint)
 - Temperature / Max Tokens
 - Scoring Iterations
 
-### 2. 完善 Profile
+### 2. Complete Your Profile
 
-进入 Profile 页面：
-- 上传 CV 和 PS（PDF 格式）
-- 添加感兴趣的 arXiv 论文链接
-- 设置研究偏好
+Go to the Profile page:
+- Upload CV and PS (PDF format)
+- Add interesting arXiv paper links
+- Set research preferences
 
-### 3. 浏览教授
+### 3. Browse Professors
 
-Hunt 页面显示所有教授卡片：
-- 顶栏显示统计：大学数、教授数、论文数、平均分
-- 使用筛选栏按优先级 / 领域 / 大学 / 分数筛选
-- 点击教授卡片查看详细信息（论文可跳转 arXiv）
+The Hunt page displays all professor cards:
+- Top bar shows statistics: universities, professors, papers, avg scores
+- Use filter bar to filter by priority / area / university / score
+- Click professor card to view details (papers link to arXiv)
 
-### 4. AI 对话分析
+### 4. AI Chat Analysis
 
-点击 Chat 进入对话：
-- 首次进入自动分析教授并生成套磁信草稿
-- 可以继续对话修改、追问细节
-- 每条消息可单独删除
+Click Chat to enter the conversation:
+- First entry auto-analyzes professor and generates cold email draft
+- Continue the conversation to modify or ask questions
+- Each message can be individually deleted
 
-## 📊 命令行详解
+## 📊 CLI Reference
 
-### `crawl` - 爬取教授信息
+### `crawl` - Crawl professor information
 
 ```bash
 python main.py crawl --area ai --region world --max-professors 5
 ```
 
-**参数：**
-- `--area`：研究领域（默认：`ai`）
-- `--region`：地区过滤（默认：`world`）
-- `--max-universities`：最大大学数量（默认：全部）
-- `--max-professors`：每所大学最大教授数（默认：5）
-- `--no-headless`：显示浏览器窗口
-- `--timeout`：页面超时（秒，默认：30）
+**Parameters:**
+- `--area`: Research area (default: `ai`)
+- `--region`: Region filter (default: `world`)
+- `--max-universities`: Max university count (default: all)
+- `--max-professors`: Max professors per university (default: 5)
+- `--no-headless`: Show browser window
+- `--timeout`: Page timeout (seconds, default: 30)
 
-### `fetch-papers` - 获取论文
+### `fetch-papers` - Fetch papers
 
 ```bash
 python main.py fetch-papers --max-papers 10 --max-professors 50
 ```
 
-**参数：**
-- `--max-papers`：每位教授最大论文数（默认：10）
-- `--max-professors`：最大处理教授数（默认：全部）
-- `--delay`：请求间隔（秒，默认：1.0）
+**Parameters:**
+- `--max-papers`: Max papers per professor (default: 10)
+- `--max-professors`: Max professors to process (default: all)
+- `--delay`: Request interval (seconds, default: 1.0)
 
-### `stats` - 统计信息
+### `stats` - Statistics
 
 ```bash
 python main.py stats
 ```
 
-## ⚠️ 已知限制
+## ⚠️ Known Limitations
 
-1. **arXiv 覆盖度**：并非所有教授都在 arXiv 发表论文
-2. **作者歧义**：arXiv 作者搜索可能包含重名结果
-3. **LLM 成本**：Analyzer 和 Scorer 需要调用 LLM API，注意费用控制
-4. **主页抓取**：部分教授主页有反爬机制，可能抓取失败
+1. **arXiv Coverage**: Not all professors publish on arXiv
+2. **Author Ambiguity**: arXiv author search may include name collisions
+3. **LLM Cost**: Analyzer and Scorer require LLM API calls, watch your budget
+4. **Homepage Scraping**: Some professor homepages have anti-bot mechanisms and may fail
 
-## 📖 文档
+## 📖 Documentation
 
-完整文档见 `docs/` 目录或本地浏览：
-- [安装指南](docs/source/installation.rst)
-- [系统架构](docs/source/architecture.rst)
-- [爬虫模块](docs/source/crawlers.rst)
-- [API 参考](docs/source/api.rst)
-- [更新日志](docs/source/changelog.rst)
+- 📚 **Online Docs**: https://nameistzzhang.github.io/phd_hunter/
+- 📁 **Local Docs**: See `docs/` directory
+  - [Installation Guide](docs/source/installation.rst)
+  - [System Architecture](docs/source/architecture.rst)
+  - [Crawler Module](docs/source/crawlers.rst)
+  - [API Reference](docs/source/api.rst)
+  - [Changelog](docs/source/changelog.rst)
 
-构建文档：
+Build docs locally:
 ```bash
 cd docs && make html
 ```
 
-## 🧪 开发
+## 🧪 Development
 
-### 运行测试
+### Run Tests
 
 ```bash
 uv run pytest tests/ -v
 ```
 
-### 代码检查
+### Code Checks
 
 ```bash
 uv run black --check src/
 uv run ruff check src/
 ```
 
-## 📄 许可证
+## 📄 License
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+MIT License - see [LICENSE](LICENSE) file
 
-## 🙏 致谢
+## 🙏 Acknowledgements
 
-- [CSRankings](http://csrankings.org/) - 教授数据来源
-- [arXiv](https://arxiv.org/) - 论文数据来源
-- [Semantic Scholar](https://www.semanticscholar.org/) - 论文补充数据
+- [CSRankings](http://csrankings.org/) - Professor data source
+- [arXiv](https://arxiv.org/) - Paper data source
+- [Semantic Scholar](https://www.semanticscholar.org/) - Supplementary paper data
 
 ---
 
-**⭐ 如果这个项目对你有帮助，请给个 Star！**
+**⭐ Star this repo if it helps you!**
