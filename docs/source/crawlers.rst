@@ -9,8 +9,9 @@ Overview
 Crawlers fetch data from different sources:
 
 * Get professor lists from CSRankings
-* Search for papers published by professors from arXiv
-* Scrape professor homepages for AI summary
+* Fetch papers via **OpenAlex** (primary source — institution + author matching)
+* Enrich abstracts via **arXiv** (by ID — accurate abstracts and PDF links)
+* Scrape professor homepages for AI summary and recent paper titles
 
 All crawlers follow rate limits and include retry logic.
 
@@ -52,20 +53,71 @@ Extracted data:
 * University URL
 * Professor homepage (extracted from ranking page)
 
+OpenAlex Crawler
+----------------
+
+**File**: ``crawlers/openalex_crawler.py``
+
+**Primary paper source.** Fetches professor papers via the `OpenAlex API <https://openalex.org/>`_, using institution + author matching for accurate identification.
+
+Features:
+
+* Search institution by name, then author within that institution
+* Select author with the most works (highest confidence)
+* Fetch works sorted by publication date
+* Extract arXiv links from ``locations`` and ``open_access`` fields
+* Handle non-arXiv papers gracefully (skip if no arXiv ID — DB schema requires it)
+
+Usage:
+
+.. code-block:: python
+
+   from phd_hunter.crawlers.openalex_crawler import OpenAlexCrawler
+   from phd_hunter.models import Professor
+
+   crawler = OpenAlexCrawler(delay=1.0)
+   prof = Professor(name="Bingsheng He", university="National University of Singapore")
+   papers = crawler.fetch(prof, max_papers=10)
+   # Returns list of Paper objects (arxiv_id set when arXiv link found)
+   crawler.close()
+
+Extracted data:
+
+* Paper title
+* Author list
+* Abstract (from OpenAlex, may be incomplete)
+* Publication year / month
+* arXiv ID (extracted from locations/open_access)
+* arXiv URL and PDF URL
+* Citation count
+* Venue name
+
 arXiv Crawler
 -------------
 
 **File**: ``crawlers/arxiv_crawler.py``
 
-Search papers from arXiv by author.
+**Abstract enrichment + manual addition.** Supplements OpenAlex papers with accurate arXiv abstracts, and supports manual paper addition by URL.
 
 Features:
 
-* Search papers by author name
-* Sort by submission date (newest first)
-* Return paper metadata (title, authors, abstract, year, PDF link)
+* ``fetch_by_ids()``: batch query arXiv by ID list for accurate abstracts and PDF links
+* ``fetch_by_titles()``: search by paper title with progressive query degradation and Jaccard similarity filtering
+* ``fetch()``: author-name search (legacy, not used in main flow)
+* Author verification: fuzzy name matching (handles initials, last-name-only)
 
-Usage:
+Usage — abstract enrichment (main flow):
+
+.. code-block:: python
+
+   from phd_hunter.crawlers.arxiv_crawler import ArxivCrawler
+
+   crawler = ArxivCrawler(delay=3.0)
+   results = crawler.fetch_by_ids(["2412.11483", "2512.02589"])
+   # Returns dict: arxiv_id -> Paper with accurate abstract and pdf_url
+   crawler.close()
+
+Usage — manual add by title (for homepage-extracted titles):
 
 .. code-block:: python
 
@@ -74,14 +126,15 @@ Usage:
 
    crawler = ArxivCrawler()
    prof = Professor(name="Yangqiu Song")
-   papers = crawler.fetch(prof, max_papers=10)
-   # Returns list of Paper objects
+   titles = ["Paper Title 1", "Paper Title 2"]
+   papers = crawler.fetch_by_titles(prof, titles=titles, max_papers=10)
+   # Returns list of Paper objects where the professor is a confirmed author
 
 Extracted data:
 
 * Paper title
 * Author list
-* Abstract
+* Abstract (accurate, from arXiv)
 * Publication year
 * arXiv ID
 * PDF URL
@@ -91,26 +144,35 @@ Homepage Crawler
 
 **File**: ``crawlers/homepage_crawler.py``
 
-Scrape professor homepages and generate AI summaries.
+Scrape professor homepages, generate AI summaries, and extract recent paper titles.
 
 Features:
 
-* Use Selenium to open professor homepage
-* Extract page content
+* Fetch professor homepage via HTTP
+* Extract plain text from HTML
 * Use LLM to generate summary (research focus, recruiting status, content summary)
+* **Extract recent paper titles** from the homepage (used for precise arXiv search)
 
 Usage:
 
 .. code-block:: python
 
-   from phd_hunter.crawlers.homepage_crawler import fetch_and_summarize_homepage
+   from phd_hunter.crawlers.homepage_crawler import (
+       fetch_and_summarize_homepage,
+       load_homepage_papers,
+   )
 
+   # Fetch homepage and extract info
    success = await fetch_and_summarize_homepage(
        professor_id=1,
        homepage_url="https://cs.stanford.edu/~prof/",
        professor_name="John Doe",
        db_path="phd_hunter.db"
    )
+
+   # Retrieve extracted paper titles
+   titles = load_homepage_papers(1)
+   # Returns ["Paper Title 1", "Paper Title 2", ...]
 
 Configuration
 -------------
@@ -124,8 +186,12 @@ Current configuration is passed via command line parameters. Key parameters:
      --timeout 30                 # Timeout (seconds)
      --max-professors 5           # Max professors per university
 
-   ArxivCrawler:
+   OpenAlexCrawler:
      --delay 1.0                  # Request interval (seconds)
+     --max-retries 3              # Retry attempts on failure
+
+   ArxivCrawler:
+     --delay 3.0                  # Request interval (seconds, be respectful)
      --max-papers 10              # Max papers per professor
 
    HomepageCrawler:

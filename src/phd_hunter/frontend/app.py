@@ -25,12 +25,66 @@ from phd_hunter.hound.scorer_daemon import get_daemon, start_daemon, stop_daemon
 from phd_hunter.analyzer import analyze_professor_first_time, chat_with_professor
 
 import arxiv as arxiv_lib
+import re
 
 app = Flask(__name__,
             template_folder=str(Path(__file__).parent),
             static_folder=str(Path(__file__).parent / 'static'))
 
-DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter.db")
+# --- arXiv URL helper ---
+_ARXIV_ID_RE = re.compile(r"(\d{4}\.\d{4,5})")  # e.g. 2403.18814
+
+
+def extract_arxiv_id(raw: str) -> str:
+    """Extract arXiv ID from a URL or raw ID string.
+
+    Supports:
+      - Full URL: https://arxiv.org/abs/2403.18814
+      - PDF URL:  https://arxiv.org/pdf/2403.18814.pdf
+      - Plain ID: 2403.18814
+      - arxiv:2403.18814
+      - With extra whitespace
+
+    Returns the bare arXiv ID or raises ValueError.
+    """
+    if not raw or not isinstance(raw, str):
+        raise ValueError("Empty or non-string input")
+
+    text = raw.strip()
+
+    # Plain ID (no slashes)
+    if "/" not in text and "." in text:
+        m = _ARXIV_ID_RE.match(text)
+        if m:
+            return m.group(1)
+
+    # Try URL parsing
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(text)
+        path = parsed.path.strip("/")
+        if path.startswith("abs/"):
+            candidate = path.split("/", 1)[1]
+        elif path.startswith("pdf/"):
+            candidate = path.split("/", 1)[1].replace(".pdf", "")
+        else:
+            candidate = path.split("/")[-1].replace(".pdf", "")
+        if candidate:
+            m = _ARXIV_ID_RE.match(candidate)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+
+    # Last resort: search the whole string for an arXiv-like ID
+    m = _ARXIV_ID_RE.search(text)
+    if m:
+        return m.group(1)
+
+    raise ValueError(f"Could not extract arXiv ID from: {text}")
+
+
+DB_PATH = str(Path(__file__).parent.parent.parent.parent / "phd_hunter_new.db")
 HUNT_CONFIG_PATH = str(Path(__file__).parent / "hunt_config.json")
 HOUND_CONFIG_PATH = str(Path(__file__).parent / "hound_config.json")
 UPLOADS_DIR = Path(__file__).parent.parent.parent.parent / "uploads"
@@ -125,7 +179,7 @@ def get_hunt_config():
 @app.route('/api/hunt-config', methods=['POST'])
 def update_hunt_config():
     """Update hunt configuration."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     config = _load_hunt_config()
 
     # Update allowed fields
@@ -219,7 +273,7 @@ def get_professor(prof_id):
 @app.route('/api/professor/<int:prof_id>/priority', methods=['POST'])
 def update_priority(prof_id):
     """Update professor priority."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     priority = data.get('priority')
 
     if priority is None:
@@ -236,6 +290,137 @@ def update_priority(prof_id):
         return jsonify({'success': True, 'priority': priority})
     else:
         return jsonify({'error': 'Professor not found'}), 404
+
+
+# ========== Professor Paper Management API ==========
+
+@app.route('/api/professor/<int:prof_id>/rescore', methods=['POST'])
+def rescore_professor(prof_id):
+    """Re-score a professor using the LLM scorer.
+
+    This clears existing scores and re-runs the scorer daemon logic.
+    """
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    if not prof:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+
+    try:
+        # Clear existing scores
+        db.update_professor_scores(
+            professor_id=prof_id,
+            direction_match=None,
+            admission_difficulty=None,
+            reasoning="",
+        )
+        db.close()
+
+        # Re-run scorer
+        from phd_hunter.hound.scorer import score_professor
+        result = _run_async(score_professor(
+            professor_id=prof_id,
+            db_path=DB_PATH,
+        ))
+
+        if result:
+            return jsonify({
+                'success': True,
+                'direction_match': result['direction_match'],
+                'admission_difficulty': result['admission_difficulty'],
+            })
+        else:
+            return jsonify({'error': 'Scoring failed. Please check profile and hound config.'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Rescoring failed: {str(e)}'}), 500
+
+
+@app.route('/api/professor/<int:prof_id>/paper', methods=['POST'])
+def add_paper_to_professor(prof_id):
+    """Add an arXiv paper to a professor by URL.
+
+    Validates that the professor is in the author list before adding.
+    """
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+    url = data.get('url', '')
+    if isinstance(url, str):
+        url = url.strip()
+
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+
+    try:
+        arxiv_id = extract_arxiv_id(url)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    db = Database(db_path=DB_PATH)
+    prof = db.get_professor_hound_data(prof_id)
+    if not prof:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+
+    try:
+        search = arxiv_lib.Search(id_list=[arxiv_id])
+        results = list(search.results())
+        if not results:
+            db.close()
+            return jsonify({'error': 'Paper not found on arXiv'}), 404
+
+        paper = results[0]
+        authors = [a.name for a in paper.authors]
+
+        # Validate professor is an author
+        from phd_hunter.crawlers.arxiv_crawler import _is_author_match
+        if not _is_author_match(prof['name'], authors):
+            db.close()
+            return jsonify({
+                'error': 'Author verification failed',
+                'detail': f"'{prof['name']}' was not found in the author list: {', '.join(authors[:5])}",
+            }), 400
+
+        paper_data = {
+            's2_paper_id': arxiv_id,
+            'title': paper.title,
+            'abstract': paper.summary,
+            'year': paper.published.year,
+            'venue': None,
+            'url': f'https://arxiv.org/abs/{arxiv_id}',
+            'openaccess_pdf': paper.pdf_url,
+            'citation_count': 0,
+        }
+        db.upsert_paper(prof_id, paper_data)
+
+        # Refresh professor data to include the new paper
+        updated_prof = db.get_professor_with_papers(prof_id)
+        db.close()
+
+        return jsonify({
+            'success': True,
+            'paper': {
+                'id': updated_prof['papers'][0]['id'],
+                'title': paper.title,
+                'arxiv_id': arxiv_id,
+            },
+        })
+    except Exception as e:
+        db.close()
+        return jsonify({'error': f'Failed to add paper: {str(e)}'}), 500
+
+
+@app.route('/api/professor/<int:prof_id>/paper/<int:paper_id>', methods=['DELETE'])
+def delete_paper(prof_id, paper_id):
+    """Delete a paper from a professor."""
+    db = Database(db_path=DB_PATH)
+    success = db.delete_paper(paper_id)
+    db.close()
+
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Paper not found'}), 404
 
 
 # ========== Profile API ==========
@@ -270,7 +455,7 @@ def get_profile():
 @app.route('/api/profile', methods=['POST'])
 def update_profile():
     """Update profile text fields."""
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     db = Database(db_path=DB_PATH)
 
     paper_links = data.get('paper_links')
@@ -348,33 +533,20 @@ def delete_profile_file():
 @app.route('/api/arxiv/resolve', methods=['POST'])
 def resolve_arxiv():
     """Resolve an arXiv URL to paper metadata (title, PDF URL)."""
-    data = request.get_json()
-    url = data.get('url', '').strip()
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+    url = data.get('url', '')
+    if isinstance(url, str):
+        url = url.strip()
 
     if not url:
         return jsonify({'error': 'URL is required'}), 400
 
-    # Extract arXiv ID from URL
-    # Supported formats:
-    # https://arxiv.org/abs/2401.12345
-    # https://arxiv.org/pdf/2401.12345.pdf
-    arxiv_id = None
     try:
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-        path = parsed.path.strip('/')
-        if path.startswith('abs/'):
-            arxiv_id = path.split('/', 1)[1]
-        elif path.startswith('pdf/'):
-            arxiv_id = path.split('/', 1)[1].replace('.pdf', '')
-        else:
-            # Try last path segment
-            arxiv_id = path.split('/')[-1].replace('.pdf', '')
-    except Exception:
-        return jsonify({'error': 'Invalid arXiv URL format'}), 400
-
-    if not arxiv_id:
-        return jsonify({'error': 'Could not extract arXiv ID from URL'}), 400
+        arxiv_id = extract_arxiv_id(url)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
 
     try:
         search = arxiv_lib.Search(id_list=[arxiv_id])
@@ -630,7 +802,7 @@ def get_hound_config_api():
 @app.route('/api/hound-config', methods=['POST'])
 def update_hound_config_api():
     """Update hound configuration (LLM settings)."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     config = _load_hound_config()
 
     # Update allowed fields
@@ -900,13 +1072,14 @@ def run_hunt_worker():
         new_professor_ids = [p['id'] for p in all_profs_after if p['id'] not in existing_ids_before]
         log_message(f"[INFO] New professor IDs for paper fetch: {len(new_professor_ids)}")
 
-        # ========== Phase 2: Fetch Papers ==========
+        # ========== Phase 2: Fetch Papers via OpenAlex ==========
         log_message("")
         log_message("=" * 70)
-        log_message("Phase 2: 从 arXiv 获取教授论文")
+        log_message("Phase 2: 从 OpenAlex 获取教授论文")
         log_message("=" * 70)
 
-        arxiv_crawler = ArxivCrawler(delay=10.0)
+        from phd_hunter.crawlers import OpenAlexCrawler
+        openalex_crawler = OpenAlexCrawler(delay=1.0)
 
         try:
             # Only fetch papers for NEWLY ADDED professors in this hunt
@@ -973,16 +1146,16 @@ def run_hunt_worker():
                     university=prof_dict['university_name'],
                 )
 
-                # Fetch papers from arXiv
-                papers = arxiv_crawler.fetch(
-                    prof,
-                    max_papers=max_papers,
-                    download=False,
-                    pdf_dir=None,
-                )
+                # --- Fetch papers via OpenAlex ---
+                log_message(f"  [OpenAlex] Searching {prof_name} @ {prof.university}...")
+                try:
+                    papers = openalex_crawler.fetch(prof, max_papers=max_papers)
+                except Exception as e:
+                    log_message(f"  [OpenAlex] Error: {e}")
+                    papers = []
 
                 if papers:
-                    # Filter out already-existing papers and invalid arxiv_id
+                    # Filter out already-existing papers
                     new_papers = [p for p in papers if p.arxiv_id and p.arxiv_id not in existing_s2_ids]
                     skipped_papers = len(papers) - len(new_papers)
 
@@ -993,7 +1166,7 @@ def run_hunt_worker():
                     if new_papers:
                         log_message(f"[OK] 找到 {len(new_papers)} 篇新论文")
 
-                        # Save NEW papers to database only
+                        # Save NEW papers to database
                         for paper in new_papers:
                             paper_data = {
                                 's2_paper_id': paper.arxiv_id,
@@ -1006,17 +1179,44 @@ def run_hunt_worker():
                                 'local_pdf_path': paper.pdf_path,
                             }
                             db.upsert_paper(prof_id, paper_data)
-                            total_papers += 1  # Increment for each successfully saved paper
+                            total_papers += 1
+
+                        # --- Enrich abstracts from arXiv ---
+                        arxiv_ids = [p.arxiv_id for p in new_papers if p.arxiv_id]
+                        if arxiv_ids:
+                            log_message(f"  [arXiv] Enriching {len(arxiv_ids)} abstracts...")
+                            try:
+                                arxiv_crawler = ArxivCrawler(delay=3.0)
+                                arxiv_results = arxiv_crawler.fetch_by_ids(arxiv_ids)
+                                updated_count = 0
+                                for paper in new_papers:
+                                    if paper.arxiv_id and paper.arxiv_id in arxiv_results:
+                                        arxiv_paper = arxiv_results[paper.arxiv_id]
+                                        # Update if arXiv abstract is better (longer or OpenAlex was empty)
+                                        if (arxiv_paper.abstract and
+                                            len(arxiv_paper.abstract) > len(paper.abstract or '')):
+                                            db.update_paper_by_arxiv_id(
+                                                prof_id, paper.arxiv_id,
+                                                {
+                                                    'abstract': arxiv_paper.abstract,
+                                                    'openaccess_pdf': arxiv_paper.pdf_url,
+                                                }
+                                            )
+                                            updated_count += 1
+                                log_message(f"  [arXiv] Updated {updated_count} abstracts")
+                                arxiv_crawler.close()
+                            except Exception as e:
+                                log_message(f"  [arXiv] Enrichment error: {e}")
                     else:
                         log_message(f"    [INFO] 所有论文都已存在，无需更新")
                 else:
                     log_message(f"    [WARN] 未找到论文")
 
-                # Update progress: number of professors processed so far
+                # Update progress
                 with hunt_lock:
                     hunt_state['papers_completed'] = i
 
-                # Small delay to avoid overwhelming
+                # Small delay between professors
                 time.sleep(0.5)
 
             # Check if stopped
@@ -1028,7 +1228,7 @@ def run_hunt_worker():
                 with hunt_lock:
                     hunt_state['running'] = False
                     hunt_state['phase'] = None
-                arxiv_crawler.close()
+                openalex_crawler.close()
                 return
 
             log_message("")
@@ -1037,7 +1237,7 @@ def run_hunt_worker():
             log_message("=" * 70)
 
         finally:
-            arxiv_crawler.close()
+            openalex_crawler.close()
 
         with hunt_lock:
             hunt_state['running'] = False

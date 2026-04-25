@@ -12,7 +12,8 @@
 
 ### Data Collection
 - 📊 **CSRankings Crawler** - Automatically fetch CS professor rankings and lists
-- 📝 **arXiv Paper Fetching** - Search and save latest paper metadata by author
+- 📚 **OpenAlex Paper Fetching** - Fetch papers via institution + author matching (primary source)
+- 🔗 **arXiv Abstract Enrichment** - Supplement OpenAlex abstracts with accurate arXiv data
 - 🏠 **Homepage Scraping** - Scrape professor homepages and generate AI summaries
 - 💾 **SQLite Storage** - All data persisted locally
 
@@ -144,14 +145,16 @@ phd_hunter/
     │   └── core/
     │       └── client.py         # Unified LLM client
     ├── crawlers/
-    │   ├── __init__.py           # Export ArxivCrawler, CSRankingsCrawler
+    │   ├── __init__.py           # Export crawlers
     │   ├── base.py               # Crawler base class (with caching)
     │   ├── csrankings.py         # CSRankings crawler (Selenium)
-    │   ├── arxiv_crawler.py      # arXiv crawler
+    │   ├── openalex_crawler.py   # OpenAlex crawler (primary paper source)
+    │   ├── arxiv_crawler.py      # arXiv crawler (abstract enrichment + manual add)
     │   └── homepage_crawler.py   # Homepage scraper + AI summary
     ├── hound/
     │   ├── __init__.py
-    │   └── scorer.py             # Professor matching scorer
+    │   ├── scorer.py             # Professor matching scorer
+    │   └── scorer_daemon.py      # Background auto-scoring daemon
     ├── analyzer/
     │   ├── __init__.py           # Export analyze_professor, chat_with_professor
     │   ├── analyzer.py           # Professor analysis + cold email core
@@ -241,6 +244,11 @@ The Hunt page displays all professor cards:
 - Use filter bar to filter by priority / area / university / score
 - Click professor card to view details (papers link to arXiv)
 
+**Professor Detail Modal:**
+- **Rescore** — Re-run LLM scoring after editing papers
+- **Add Paper** — Paste an arXiv URL to manually add a paper
+- **Delete Paper** — Remove incorrect papers with the × button
+
 ### 4. AI Chat Analysis
 
 Click Chat to enter the conversation:
@@ -283,10 +291,10 @@ python main.py stats
 
 ## ⚠️ Known Limitations
 
-1. **arXiv Coverage**: Not all professors publish on arXiv
-2. **Author Ambiguity**: arXiv author search may include name collisions
-3. **LLM Cost**: Analyzer and Scorer require LLM API calls, watch your budget
-4. **Homepage Scraping**: Some professor homepages have anti-bot mechanisms and may fail
+1. **arXiv vs Non-arXiv Papers**: OpenAlex covers all venues, but only papers with an arXiv association get enriched with full abstracts and PDF links. Pure conference/journal papers may have limited metadata.
+2. **OpenAlex Institution Matching**: Author identification relies on OpenAlex's institution linking. Professors with ambiguous names or recent institution changes may occasionally be misidentified.
+3. **LLM Cost**: Analyzer, Scorer, and Homepage Paper Extraction all require LLM API calls. Watch your budget.
+4. **Homepage Scraping**: Some professor homepages have anti-bot mechanisms and may fail. Homepage extraction is best-effort; missing data does not block other features.
 
 ## 📖 Documentation
 
@@ -325,7 +333,8 @@ MIT License - see [LICENSE](LICENSE) file
 ## 🙏 Acknowledgements
 
 - [CSRankings](http://csrankings.org/) - Professor data source
-- [arXiv](https://arxiv.org/) - Paper data source
+- [OpenAlex](https://openalex.org/) - Primary paper and author data source
+- [arXiv](https://arxiv.org/) - Paper abstract enrichment and manual addition
 - [Semantic Scholar](https://www.semanticscholar.org/) - Supplementary paper data
 
 ---

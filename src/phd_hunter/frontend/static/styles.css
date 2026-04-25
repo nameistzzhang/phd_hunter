@@ -2401,3 +2401,104 @@ html, body {
 .settings-footer .hunt-button {
     min-width: 140px;
 }
+
+/* ============================================
+   Rescore Button
+   ============================================ */
+.btn-rescore {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-rescore:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    background: var(--bg-secondary);
+}
+
+.btn-rescore:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   Paper Delete Button
+   ============================================ */
+.paper-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.paper-delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.paper-delete-btn:hover {
+    color: #e74c3c;
+}
+
+/* ============================================
+   Add Paper Input Row
+   ============================================ */
+.add-paper-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.add-paper-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--input-border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--input-bg);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+}
+
+.add-paper-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.add-paper-input::placeholder {
+    color: var(--text-muted);
+}
+
+.btn-add-paper {
+    background: var(--accent-color);
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-add-paper:hover {
+    opacity: 0.85;
+}

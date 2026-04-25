@@ -3,7 +3,7 @@
 import asyncio
 import json
 import traceback
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 import httpx
@@ -29,6 +29,37 @@ def _save_raw_html(professor_id: int, html: str) -> Path:
     file_path.write_text(html, encoding="utf-8")
     logger.info(f"[Homepage] Raw HTML saved: {file_path} ({len(html)} chars)")
     return file_path
+
+
+def _save_homepage_papers(professor_id: int, papers: List[str]) -> Path:
+    """Save extracted paper titles to file system.
+
+    Returns:
+        Path to the saved file.
+    """
+    HOME_PAGES_DIR.mkdir(parents=True, exist_ok=True)
+    file_path = HOME_PAGES_DIR / f"{professor_id}_papers.json"
+    file_path.write_text(json.dumps(papers, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info(f"[Homepage] Paper titles saved: {file_path} ({len(papers)} titles)")
+    return file_path
+
+
+def load_homepage_papers(professor_id: int) -> List[str]:
+    """Load previously extracted paper titles from file system.
+
+    Returns:
+        List of paper titles, or empty list if not found.
+    """
+    file_path = HOME_PAGES_DIR / f"{professor_id}_papers.json"
+    if not file_path.exists():
+        return []
+    try:
+        data = json.loads(file_path.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            return [str(t).strip() for t in data if str(t).strip()]
+    except Exception:
+        pass
+    return []
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -153,6 +184,7 @@ async def _llm_summarize_homepage(
             "research_focus": data.get("research_focus", ""),
             "recruiting_status": data.get("recruiting_status", "unknown"),
             "summary": data.get("summary", ""),
+            "recent_papers": data.get("recent_papers", []),
         }
     except Exception as e:
         logger.warning(f"LLM homepage extraction failed for {professor_name}: {e}")
@@ -254,6 +286,12 @@ async def fetch_and_summarize_homepage(
             email=result["email"],
             status="success",
         )
+
+        # 7. Save extracted paper titles to file system
+        recent_papers = result.get("recent_papers", [])
+        if recent_papers and isinstance(recent_papers, list):
+            _save_homepage_papers(professor_id, recent_papers)
+
         db.close()
 
         logger.info(
