@@ -335,6 +335,122 @@ def rescore_professor(prof_id):
         return jsonify({'error': f'Rescoring failed: {str(e)}'}), 500
 
 
+@app.route('/api/professor/<int:prof_id>/refetch-papers', methods=['POST'])
+def refetch_papers(prof_id):
+    """Re-fetch papers for a professor from OpenAlex + arXiv enrichment.
+
+    Fetches the latest papers from OpenAlex, skips already-existing ones
+    (by arxiv_id), saves new papers, then enriches abstracts from arXiv.
+    """
+    db = Database(db_path=DB_PATH)
+    prof_dict = db.get_professor_hound_data(prof_id)
+    if not prof_dict:
+        db.close()
+        return jsonify({'error': 'Professor not found'}), 404
+
+    try:
+        # Get existing papers for de-duplication
+        existing_papers = db.get_papers_by_professor(prof_id)
+        existing_arxiv_ids = {p['s2_paper_id'] for p in existing_papers if p['s2_paper_id']}
+        existing_count = len(existing_papers)
+
+        # Fetch from OpenAlex
+        from phd_hunter.crawlers import OpenAlexCrawler
+        from phd_hunter.models import Professor
+
+        openalex_crawler = OpenAlexCrawler(delay=1.0)
+
+        prof = Professor(
+            id=prof_id,
+            name=prof_dict['name'],
+            university=prof_dict['university_name'],
+        )
+
+        # Load hunt config for max_papers
+        config = _load_hunt_config()
+        max_papers = config.get('max_papers', 10)
+
+        papers = openalex_crawler.fetch(prof, max_papers=max_papers)
+
+        if not papers:
+            db.close()
+            return jsonify({
+                'success': True,
+                'added': 0,
+                'updated': 0,
+                'message': 'No papers found for this professor.',
+            })
+
+        # Filter out already-existing papers
+        new_papers = [p for p in papers if p.arxiv_id and p.arxiv_id not in existing_arxiv_ids]
+        skipped = len(papers) - len(new_papers)
+
+        added = 0
+        if new_papers:
+            for paper in new_papers:
+                paper_data = {
+                    's2_paper_id': paper.arxiv_id,
+                    'title': paper.title,
+                    'abstract': paper.abstract,
+                    'year': paper.year,
+                    'venue': paper.venue,
+                    'url': paper.url,
+                    'openaccess_pdf': paper.pdf_url,
+                    'local_pdf_path': paper.pdf_path,
+                }
+                db.upsert_paper(prof_id, paper_data)
+                added += 1
+
+            # Enrich abstracts from arXiv
+            arxiv_ids = [p.arxiv_id for p in new_papers if p.arxiv_id]
+            updated = 0
+            if arxiv_ids:
+                try:
+                    arxiv_crawler = ArxivCrawler(delay=3.0)
+                    arxiv_results = arxiv_crawler.fetch_by_ids(arxiv_ids)
+                    for paper in new_papers:
+                        if paper.arxiv_id and paper.arxiv_id in arxiv_results:
+                            arxiv_paper = arxiv_results[paper.arxiv_id]
+                            if (arxiv_paper.abstract and
+                                    len(arxiv_paper.abstract) > len(paper.abstract or '')):
+                                db.update_paper_by_arxiv_id(
+                                    prof_id, paper.arxiv_id,
+                                    {
+                                        'abstract': arxiv_paper.abstract,
+                                        'openaccess_pdf': arxiv_paper.pdf_url,
+                                    }
+                                )
+                                updated += 1
+                    arxiv_crawler.close()
+                except Exception as e:
+                    # Non-fatal: papers are already saved
+                    pass
+        else:
+            updated = 0
+
+        db.close()
+
+        msg_parts = []
+        if added > 0:
+            msg_parts.append(f'Added {added} new papers')
+        if skipped > 0:
+            msg_parts.append(f'skipped {skipped} existing')
+        message = ', '.join(msg_parts) if msg_parts else 'No new papers found'
+
+        return jsonify({
+            'success': True,
+            'added': added,
+            'updated': updated,
+            'skipped': skipped,
+            'total_existing': existing_count,
+            'message': message,
+        })
+
+    except Exception as e:
+        db.close()
+        return jsonify({'error': f'Re-fetch failed: {str(e)}'}), 500
+
+
 @app.route('/api/professor/<int:prof_id>/paper', methods=['POST'])
 def add_paper_to_professor(prof_id):
     """Add an arXiv paper to a professor by URL.

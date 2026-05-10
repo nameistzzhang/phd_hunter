@@ -3,6 +3,27 @@ Changelog
 
 All major changes to PhD Hunter will be recorded here.
 
+[0.1.2] - 2026-05-10
+---------------------
+
+Added
+~~~~~
+
+* **Re-fetch Papers** button on professor detail modal
+    * Re-fetch latest papers from OpenAlex for individual professors
+    * Skips already-existing papers (by arxiv_id) to avoid duplicates
+    * Auto-enriches abstracts from arXiv after fetching new papers
+
+Fixed
+~~~~~
+
+* OpenAlex ``last_known_institutions`` None handling: prevents ``'NoneType' object is not subscriptable`` crash when author has no institution data
+
+Removed
+~~~~~~~
+
+* ``config/settings.example.yaml`` (unused; project uses JSON configs)
+
 [0.1.1] - 2026-04-26
 ---------------------
 

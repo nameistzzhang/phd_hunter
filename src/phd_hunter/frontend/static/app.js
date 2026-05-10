@@ -446,9 +446,14 @@ function openProfessor(profId) {
         <div class="section">
             <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
                 Metrics
-                <button class="btn-rescore" onclick="rescoreProfessor(${prof.id})" id="rescore-btn-${prof.id}">
-                    <span class="btn-text">&#x21bb; Rescore</span>
-                </button>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn-refetch" onclick="refetchPapers(${prof.id})" id="refetch-btn-${prof.id}" title="Re-fetch latest papers from OpenAlex">
+                        <span class="btn-text">&#x21bb; Re-fetch Papers</span>
+                    </button>
+                    <button class="btn-rescore" onclick="rescoreProfessor(${prof.id})" id="rescore-btn-${prof.id}">
+                        <span class="btn-text">&#x21bb; Rescore</span>
+                    </button>
+                </div>
             </div>
             <div class="metrics-grid">
                 <div class="metric-box">
@@ -568,6 +573,38 @@ async function rescoreProfessor(profId) {
     } finally {
         btn.disabled = false;
         btn.querySelector('.btn-text').textContent = '\u21bb Rescore';
+    }
+}
+
+async function refetchPapers(profId) {
+    const btn = document.getElementById('refetch-btn-' + profId);
+    if (!btn) return;
+
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = 'Fetching...';
+
+    try {
+        const resp = await fetch(`/api/professor/${profId}/refetch-papers`, { method: 'POST' });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            const parts = [];
+            if (data.added > 0) parts.push(`Added ${data.added} papers`);
+            if (data.updated > 0) parts.push(`Updated ${data.updated} abstracts`);
+            if (data.skipped > 0) parts.push(`Skipped ${data.skipped} existing`);
+            const msg = parts.length > 0 ? parts.join(', ') : data.message || 'Done';
+            showToast(msg, data.added > 0 ? 'success' : 'info');
+
+            // Refresh the modal to show new papers
+            await refreshProfessorModal(profId);
+        } else {
+            showToast(data.error || 'Re-fetch failed', 'error');
+        }
+    } catch (e) {
+        showToast('Re-fetch failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.querySelector('.btn-text').textContent = '\u21bb Re-fetch Papers';
     }
 }
 

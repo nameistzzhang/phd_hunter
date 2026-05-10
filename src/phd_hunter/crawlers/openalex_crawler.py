@@ -136,9 +136,9 @@ class OpenAlexCrawler(BaseCrawler):
         # Pick the author with the most works (most likely the professor)
         selected = max(authors, key=lambda a: a.get("works_count", 0))
         author_id = selected["id"]
-        aff = selected.get("last_known_institutions", [{}])[0].get(
-            "display_name", "unknown"
-        )
+        institutions = selected.get("last_known_institutions") or [{}]
+        first_inst = institutions[0] or {}
+        aff = first_inst.get("display_name", "unknown")
         logger.info(
             f"[OpenAlex] Selected author: {selected['display_name']} "
             f"({aff}, {selected.get('works_count', 0)} works, {author_id})"

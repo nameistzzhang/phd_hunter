@@ -4,7 +4,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
-![Status](https://img.shields.io/badge/status-v0.1-green.svg)
+![Status](https://img.shields.io/badge/status-v0.1.2-green.svg)
 
 > 📖 **Full documentation**: https://nameistzzhang.github.io/phd_hunter/
 
