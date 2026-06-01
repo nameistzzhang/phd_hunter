@@ -240,6 +240,74 @@ def get_stats():
     return jsonify(stats)
 
 
+@app.route('/api/professors', methods=['POST'])
+def add_professor():
+    """Manually add a new professor to the database.
+
+    Required fields: name, university_name
+    Optional fields: homepage, scholar_url, email, research_interests, department
+    """
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Invalid request body'}), 400
+
+    name = (data.get('name') or '').strip()
+    university_name = (data.get('university_name') or '').strip()
+
+    if not name:
+        return jsonify({'error': 'Professor name is required'}), 400
+    if not university_name:
+        return jsonify({'error': 'University name is required'}), 400
+
+    db = Database(db_path=DB_PATH)
+
+    # Check if professor already exists (by name + university)
+    existing = db.get_professor_by_name(name, university_name)
+    if existing:
+        db.close()
+        return jsonify({
+            'error': f'Professor "{name}" at "{university_name}" already exists (id={existing["id"]})'
+        }), 409
+
+    # Parse research_interests
+    research_interests = data.get('research_interests', [])
+    if isinstance(research_interests, str):
+        research_interests = [t.strip() for t in research_interests.split(',') if t.strip()]
+
+    prof = Professor(
+        name=name,
+        university=university_name,
+        department=(data.get('department') or '').strip() or None,
+        homepage=(data.get('homepage') or '').strip() or None,
+        scholar_url=(data.get('scholar_url') or '').strip() or None,
+        email=(data.get('email') or '').strip() or None,
+        research_interests=research_interests,
+    )
+
+    # Manually added professors have no CSRankings data; use -1 for rank
+    uni = University(
+        name=university_name,
+        rank=-1,
+        score=0.0,
+        paper_count=0,
+        cs_rankings_url='',
+    )
+
+    try:
+        prof_id = db.upsert_professor(prof, uni)
+        db.close()
+        return jsonify({
+            'success': True,
+            'id': prof_id,
+            'name': name,
+            'university_name': university_name,
+            'message': f'Added professor "{name}" (id={prof_id})'
+        })
+    except Exception as e:
+        db.close()
+        return jsonify({'error': f'Failed to add professor: {str(e)}'}), 500
+
+
 @app.route('/api/professor/<int:prof_id>')
 def get_professor(prof_id):
     """Get single professor by ID."""
@@ -408,6 +476,7 @@ def refetch_papers(prof_id):
                 try:
                     arxiv_crawler = ArxivCrawler(delay=3.0)
                     arxiv_results = arxiv_crawler.fetch_by_ids(arxiv_ids)
+                    failed_ids = []
                     for paper in new_papers:
                         if paper.arxiv_id and paper.arxiv_id in arxiv_results:
                             arxiv_paper = arxiv_results[paper.arxiv_id]
@@ -421,10 +490,15 @@ def refetch_papers(prof_id):
                                     }
                                 )
                                 updated += 1
+                        elif paper.arxiv_id:
+                            failed_ids.append(paper.arxiv_id)
+                    if failed_ids:
+                        print(f"[refetch] arXiv not found for {len(failed_ids)} papers: {failed_ids[:3]}...")
                     arxiv_crawler.close()
                 except Exception as e:
-                    # Non-fatal: papers are already saved
-                    pass
+                    print(f"[refetch] arXiv enrichment error: {e}")
+                    import traceback
+                    traceback.print_exc()
         else:
             updated = 0
 
@@ -1305,6 +1379,7 @@ def run_hunt_worker():
                                 arxiv_crawler = ArxivCrawler(delay=3.0)
                                 arxiv_results = arxiv_crawler.fetch_by_ids(arxiv_ids)
                                 updated_count = 0
+                                failed_ids = []
                                 for paper in new_papers:
                                     if paper.arxiv_id and paper.arxiv_id in arxiv_results:
                                         arxiv_paper = arxiv_results[paper.arxiv_id]
@@ -1319,10 +1394,16 @@ def run_hunt_worker():
                                                 }
                                             )
                                             updated_count += 1
+                                    elif paper.arxiv_id:
+                                        failed_ids.append(paper.arxiv_id)
+                                if failed_ids:
+                                    log_message(f"  [arXiv] {len(failed_ids)} papers not found on arXiv")
                                 log_message(f"  [arXiv] Updated {updated_count} abstracts")
                                 arxiv_crawler.close()
                             except Exception as e:
                                 log_message(f"  [arXiv] Enrichment error: {e}")
+                                import traceback
+                                traceback.print_exc()
                     else:
                         log_message(f"    [INFO] 所有论文都已存在，无需更新")
                 else:

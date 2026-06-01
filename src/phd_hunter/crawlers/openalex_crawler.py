@@ -309,6 +309,9 @@ class OpenAlexCrawler(BaseCrawler):
             works = data.get("results", [])
             if not works:
                 break
+            works = data.get("results", [])
+            if not works:
+                break
 
             for work in works:
                 paper = self._work_to_paper(work)

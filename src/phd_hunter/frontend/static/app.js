@@ -411,6 +411,104 @@ async function switchToChat(profId) {
     await loadChatMessages(profId);
 }
 
+// ============ Add Professor Modal ============
+
+function openAddProfessorModal() {
+    const overlay = document.getElementById('add-prof-modal-overlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    // Focus on name field
+    setTimeout(() => document.getElementById('add-prof-name')?.focus(), 100);
+}
+
+function closeAddProfessorModal() {
+    const overlay = document.getElementById('add-prof-modal-overlay');
+    if (overlay) overlay.classList.remove('active');
+    // Clear form
+    ['add-prof-name', 'add-prof-university', 'add-prof-department',
+     'add-prof-homepage', 'add-prof-scholar', 'add-prof-email',
+     'add-prof-interests'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+}
+
+async function submitAddProfessor() {
+    const btn = document.getElementById('add-prof-submit-btn');
+    const name = document.getElementById('add-prof-name')?.value.trim() || '';
+    const university = document.getElementById('add-prof-university')?.value.trim() || '';
+
+    if (!name) {
+        showToast('Professor name is required', 'error');
+        return;
+    }
+    if (!university) {
+        showToast('University name is required', 'error');
+        return;
+    }
+
+    const data = {
+        name: name,
+        university_name: university,
+        department: document.getElementById('add-prof-department')?.value.trim() || '',
+        homepage: document.getElementById('add-prof-homepage')?.value.trim() || '',
+        scholar_url: document.getElementById('add-prof-scholar')?.value.trim() || '',
+        email: document.getElementById('add-prof-email')?.value.trim() || '',
+        research_interests: document.getElementById('add-prof-interests')?.value.trim() || '',
+    };
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+    }
+
+    try {
+        const resp = await fetch('/api/professors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.success) {
+            showToast(result.message, 'success');
+            closeAddProfessorModal();
+            // Refresh professor list
+            await loadProfessors();
+        } else {
+            showToast(result.error || 'Failed to add professor', 'error');
+        }
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Add Professor';
+        }
+    }
+}
+
+// Close add-prof modal on overlay click
+window.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('add-prof-modal-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeAddProfessorModal();
+        });
+    }
+    // Enter key to submit
+    const formInputs = ['add-prof-name', 'add-prof-university', 'add-prof-department',
+                        'add-prof-homepage', 'add-prof-scholar', 'add-prof-email', 'add-prof-interests'];
+    formInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitAddProfessor();
+            });
+        }
+    });
+});
+
 // Open professor detail modal
 function openProfessor(profId) {
     // Update active state

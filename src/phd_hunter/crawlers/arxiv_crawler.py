@@ -458,6 +458,7 @@ class ArxivCrawler(BaseCrawler):
         logger.info(f"[arXiv] Fetching {len(arxiv_ids)} papers by ID")
         results: Dict[str, Paper] = {}
 
+        missing_ids = set(arxiv_ids)
         for attempt in range(self.max_retries):
             try:
                 search = arxiv.Search(
@@ -482,9 +483,12 @@ class ArxivCrawler(BaseCrawler):
                         pdf_url=result.pdf_url,
                     )
                     results[arxiv_id] = paper
+                    missing_ids.discard(arxiv_id)
                     logger.debug(f"  [arXiv] {arxiv_id}: {paper.title[:60]}...")
 
-                logger.info(f"[arXiv] Fetched {len(results)} papers by ID")
+                if missing_ids:
+                    logger.warning(f"[arXiv] {len(missing_ids)} IDs not returned by API: {list(missing_ids)[:5]}")
+                logger.info(f"[arXiv] Fetched {len(results)}/{len(arxiv_ids)} papers by ID")
                 time.sleep(self.delay)
                 self.set_cache(cache_key, results)
                 return results
@@ -492,14 +496,14 @@ class ArxivCrawler(BaseCrawler):
             except HTTPError as e:
                 status = getattr(e, 'status', None)
                 if status == 429:
-                    wait_time = (attempt + 1) * 10
+                    wait_time = (attempt + 1) * 15
                     logger.warning(f"Rate limited (429). Waiting {wait_time}s...")
                     time.sleep(wait_time)
                     continue
                 logger.error(f"HTTP error {status}: {e}")
                 break
             except Exception as e:
-                logger.error(f"Error fetching by IDs (attempt {attempt+1}): {e}")
+                logger.error(f"Error fetching by IDs (attempt {attempt+1}/{self.max_retries}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(2 ** attempt)
                     continue

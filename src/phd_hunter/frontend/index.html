@@ -434,6 +434,12 @@
                 </div>
             </div>
 
+            <div class="professor-actions">
+                <button class="btn-add-professor" onclick="openAddProfessorModal()" title="Manually add a professor">
+                    <span class="btn-text">+ Add Professor</span>
+                </button>
+            </div>
+
             <div class="professor-list" id="professor-list">
                 <!-- Professor cards -->
             </div>
@@ -516,6 +522,50 @@
                         <span class="button-text">Save Settings</span>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Professor Modal -->
+    <div class="modal-overlay" id="add-prof-modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Add Professor</h2>
+                <button class="modal-close" onclick="closeAddProfessorModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="add-prof-name">Name *</label>
+                    <input type="text" id="add-prof-name" class="form-input" placeholder="e.g. Geoffrey Hinton">
+                </div>
+                <div class="form-group">
+                    <label for="add-prof-university">University *</label>
+                    <input type="text" id="add-prof-university" class="form-input" placeholder="e.g. University of Toronto">
+                </div>
+                <div class="form-group">
+                    <label for="add-prof-department">Department</label>
+                    <input type="text" id="add-prof-department" class="form-input" placeholder="e.g. Computer Science">
+                </div>
+                <div class="form-group">
+                    <label for="add-prof-homepage">Homepage URL</label>
+                    <input type="text" id="add-prof-homepage" class="form-input" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label for="add-prof-scholar">Google Scholar URL</label>
+                    <input type="text" id="add-prof-scholar" class="form-input" placeholder="https://scholar.google.com/citations?...">
+                </div>
+                <div class="form-group">
+                    <label for="add-prof-email">Email</label>
+                    <input type="text" id="add-prof-email" class="form-input" placeholder="prof@university.edu">
+                </div>
+                <div class="form-group">
+                    <label for="add-prof-interests">Research Interests (comma-separated)</label>
+                    <input type="text" id="add-prof-interests" class="form-input" placeholder="e.g. NLP, computer vision, deep learning">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeAddProfessorModal()">Cancel</button>
+                <button class="btn-primary" id="add-prof-submit-btn" onclick="submitAddProfessor()">Add Professor</button>
             </div>
         </div>
     </div>
