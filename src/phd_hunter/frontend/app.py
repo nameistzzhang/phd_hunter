@@ -553,7 +553,7 @@ def add_paper_to_professor(prof_id):
         return jsonify({'error': 'Professor not found'}), 404
 
     try:
-        search = arxiv_lib.Search(id_list=[arxiv_id])
+        search = arxiv_lib.Search(id_list=[arxiv_id], max_results=1)
         results = list(search.results())
         if not results:
             db.close()
@@ -739,7 +739,7 @@ def resolve_arxiv():
         return jsonify({'error': str(e)}), 400
 
     try:
-        search = arxiv_lib.Search(id_list=[arxiv_id])
+        search = arxiv_lib.Search(id_list=[arxiv_id], max_results=1)
         results = list(search.results())
         if not results:
             return jsonify({'error': 'Paper not found on arXiv'}), 404
